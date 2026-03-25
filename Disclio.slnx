@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="DisclioApp/disclioapp.client/disclioapp.client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="DisclioApp/DisclioApp.Server/DisclioApp.Server.csproj" />
+</Solution>

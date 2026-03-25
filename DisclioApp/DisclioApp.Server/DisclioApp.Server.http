@@ -1,0 +1,6 @@
+@DisclioApp.Server_HostAddress = http://localhost:5269
+
+GET {{DisclioApp.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
