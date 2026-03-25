@@ -20,7 +20,10 @@ export const initialCDs = [
             "letzte tag",
             "unendlichkeit"
         ],
-        cover: "schrei1.jpeg"
+        cover: "schrei1.jpeg",
+        photos: [
+            "schrei1.jpeg"
+        ]
     },
     {
         title: "Brat",
@@ -36,17 +39,20 @@ export const initialCDs = [
             "Von Dutch",
             "365"
         ],
-        cover: "brat.jpeg"
+        cover: "brat.jpeg",
+        photos: [
+            "brat.jpeg"
+        ]
     },
     {
-        "title": "Fallen",
-        "artist": "Evanescence",
-        "year": 2003,
-        "rating": 5,
-        "category": "alternative rock",
-        "manufacturer": "Wind-up",
-        "condition": "mint",
-        "songs": [
+        title: "Fallen",
+        artist: "Evanescence",
+        year: 2003,
+        rating: 5,
+        category: "alternative rock",
+        manufacturer: "Wind-up",
+        condition: "mint",
+        songs: [
             "going under",
             "bring me to life",
             "everybody's fool",
@@ -59,17 +65,20 @@ export const initialCDs = [
             "my last breath",
             "whisper"
         ],
-        "cover": "fallen.png"
+        cover: "fallen.png",
+        photos: [
+            "fallen.png"
+        ]
     },
     {
-        "title": "Three Days Grace",
-        "artist": "Three Days Grace",
-        "year": 2003,
-        "rating": 4,
-        "category": "hard rock",
-        "manufacturer": "Jive",
-        "condition": "good",
-        "songs": [
+        title: "Three Days Grace",
+        artist: "Three Days Grace",
+        year: 2003,
+        rating: 4,
+        category: "hard rock",
+        manufacturer: "Jive",
+        condition: "good",
+        songs: [
             "burn",
             "just like you",
             "i hate everything about you",
@@ -83,17 +92,20 @@ export const initialCDs = [
             "take me under",
             "overrated"
         ],
-        "cover": "three_days_grace.jpg"
+        cover: "three_days_grace.jpg",
+        photos: [
+            "three_days_grace.jpg"
+        ]
     },
     {
-        "title": "Riot!",
-        "artist": "Paramore",
-        "year": 2007,
-        "rating": 5,
-        "category": "pop punk",
-        "manufacturer": "Fueled by Ramen",
-        "condition": "very good",
-        "songs": [
+        title: "Riot!",
+        artist: "Paramore",
+        year: 2007,
+        rating: 5,
+        category: "pop punk",
+        manufacturer: "Fueled by Ramen",
+        condition: "very good",
+        songs: [
             "for a pessimist, i'm pretty optimistic",
             "that's what you get",
             "hallelujah",
@@ -106,17 +118,20 @@ export const initialCDs = [
             "fences",
             "born for this"
         ],
-        "cover": "riot.png"
+        cover: "riot.png",
+        photos: [
+            "riot.png"
+        ]
     },
     {
-        "title": "Hybrid Theory",
-        "artist": "Linkin Park",
-        "year": 2000,
-        "rating": 5,
-        "category": "nu-metal",
-        "manufacturer": "Warner Bros.",
-        "condition": "mint",
-        "songs": [
+        title: "Hybrid Theory",
+        artist: "Linkin Park",
+        year: 2000,
+        rating: 5,
+        category: "nu-metal",
+        manufacturer: "Warner Bros.",
+        condition: "mint",
+        songs: [
             "papercut",
             "one step closer",
             "with you",
@@ -130,17 +145,20 @@ export const initialCDs = [
             "cure for the itch",
             "pushing me away"
         ],
-        "cover": "hybrid_theory.jpg"
+        cover: "hybrid_theory.jpg",
+        photos: [
+            "hybrid_theory.jpg"
+        ]
     },
     {
-        "title": "The Black Parade",
-        "artist": "My Chemical Romance",
-        "year": 2006,
-        "rating": 5,
-        "category": "emo rock",
-        "manufacturer": "Reprise",
-        "condition": "very good",
-        "songs": [
+        title: "The Black Parade",
+        artist: "My Chemical Romance",
+        year: 2006,
+        rating: 5,
+        category: "emo rock",
+        manufacturer: "Reprise",
+        condition: "very good",
+        songs: [
             "the sharpest lives",
             "welcome to the black parade",
             "i don't love you",
@@ -152,17 +170,20 @@ export const initialCDs = [
             "disenchanted",
             "famous last words"
         ],
-        "cover": "black_parade.jpg"
+        cover: "black_parade.jpg",
+        photos: [
+            "black_parade.jpg"
+        ]
     },
     {
-        "title": "Future Nostalgia",
-        "artist": "Dua Lipa",
-        "year": 2020,
-        "rating": 4,
-        "category": "pop",
-        "manufacturer": "Warner Records",
-        "condition": "new",
-        "songs": [
+        title: "Future Nostalgia",
+        artist: "Dua Lipa",
+        year: 2020,
+        rating: 4,
+        category: "pop",
+        manufacturer: "Warner Records",
+        condition: "new",
+        songs: [
             "future nostalgia",
             "don't start now",
             "cool",
@@ -175,17 +196,20 @@ export const initialCDs = [
             "good in bed",
             "boys will be boys"
         ],
-        "cover": "future_nostalgia.png"
+        cover: "future_nostalgia.png",
+        photos: [
+            "future_nostalgia.png"
+        ]
     },
     {
-        "title": "American Idiot",
-        "artist": "Green Day",
-        "year": 2004,
-        "rating": 5,
-        "category": "punk rock",
-        "manufacturer": "Reprise",
-        "condition": "good",
-        "songs": [
+        title: "American Idiot",
+        artist: "Green Day",
+        year: 2004,
+        rating: 5,
+        category: "punk rock",
+        manufacturer: "Reprise",
+        condition: "good",
+        songs: [
             "american idiot",
             "jesus of suburbia",
             "holiday",
@@ -198,17 +222,20 @@ export const initialCDs = [
             "letterbomb",
             "wake me up when september ends"
         ],
-        "cover": "american_idiot.jpg"
+        cover: "american_idiot.jpg",
+        photos: [
+            "american_idiot.jpg"
+        ]
     },
     {
-        "title": "Happier Than Ever",
-        "artist": "Billie Eilish",
-        "year": 2021,
-        "rating": 5,
-        "category": "alternative",
-        "manufacturer": "Interscope",
-        "condition": "mint",
-        "songs": [
+        title: "Happier Than Ever",
+        artist: "Billie Eilish",
+        year: 2021,
+        rating: 5,
+        category: "alternative",
+        manufacturer: "Interscope",
+        condition: "mint",
+        songs: [
             "getting older",
             "i didn't change my number",
             "billie bossa nova",
@@ -225,6 +252,9 @@ export const initialCDs = [
             "happier than ever",
             "male fantasy"
         ],
-        "cover": "happier_than_ever.png"
+        cover: "happier_than_ever.png",
+        photos: [
+            "happier_than_ever.png"
+        ]
     }
 ];

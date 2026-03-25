@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Routes, Route, useNavigate, useParams, Link } from 'react-router-dom';
 import { initialCDs } from './models/CDs';
 import './App.css'
+import { AddCDForm } from './AddCDForm';
 
 function MasterView({ currentItems, indexOfFirstItem, deleteCD, currentPage, setCurrentPage, indexOfLastItem, cds }) {
     const navigate = useNavigate();
@@ -45,35 +46,6 @@ function MasterView({ currentItems, indexOfFirstItem, deleteCD, currentPage, set
                 <span> Page {currentPage} </span>
                 <button disabled={indexOfLastItem >= cds.length} onClick={() => setCurrentPage(p => p + 1)}>Next</button>
             </div>
-        </div>
-    );
-}
-
-function AddCDForm({ onSave }) {
-    const navigate = useNavigate();
-    const [formData, setFormData] = useState({ title: '', artist: '', year: '', songs: '' });
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!formData.title || !formData.artist) {
-            alert("Title and Artist are required!");
-            return;
-        }
-        onSave({ ...formData, songs: formData.songs.split(',') });
-        navigate('/');
-    };
-
-    return (
-        <div className="form-container">
-            <h2>Add New Album</h2>
-            <form onSubmit={handleSubmit}>
-                <input type="text" placeholder="Title" onChange={e => setFormData({ ...formData, title: e.target.value })} />
-                <input type="text" placeholder="Artist" onChange={e => setFormData({ ...formData, artist: e.target.value })} />
-                <input type="number" placeholder="Year" onChange={e => setFormData({ ...formData, year: e.target.value })} />
-                <textarea placeholder="Songs (comma separated)" onChange={e => setFormData({ ...formData, songs: e.target.value })} />
-                <button type="submit">Save</button>
-                <button type="button" onClick={() => navigate('/')}>Cancel</button>
-            </form>
         </div>
     );
 }
