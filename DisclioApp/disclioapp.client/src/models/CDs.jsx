@@ -20,9 +20,9 @@ export const initialCDs = [
             "letzte tag",
             "unendlichkeit"
         ],
-        cover: "schrei1.jpeg",
+        cover: "/schrei1.jpeg",
         photos: [
-            "schrei1.jpeg"
+            "/schrei1.jpeg"
         ]
     },
     {
@@ -39,9 +39,9 @@ export const initialCDs = [
             "Von Dutch",
             "365"
         ],
-        cover: "brat.jpeg",
+        cover: "/brat.jpeg",
         photos: [
-            "brat.jpeg"
+            "/brat.jpeg"
         ]
     },
     {
@@ -65,9 +65,9 @@ export const initialCDs = [
             "my last breath",
             "whisper"
         ],
-        cover: "fallen.png",
+        cover: "/fallen.png",
         photos: [
-            "fallen.png"
+            "/fallen.png"
         ]
     },
     {
@@ -92,9 +92,9 @@ export const initialCDs = [
             "take me under",
             "overrated"
         ],
-        cover: "three_days_grace.jpg",
+        cover: "/three_days_grace.jpg",
         photos: [
-            "three_days_grace.jpg"
+            "/three_days_grace.jpg"
         ]
     },
     {
@@ -118,9 +118,9 @@ export const initialCDs = [
             "fences",
             "born for this"
         ],
-        cover: "riot.png",
+        cover: "/riot.png",
         photos: [
-            "riot.png"
+            "/riot.png"
         ]
     },
     {
@@ -145,9 +145,9 @@ export const initialCDs = [
             "cure for the itch",
             "pushing me away"
         ],
-        cover: "hybrid_theory.jpg",
+        cover: "/hybrid_theory.jpg",
         photos: [
-            "hybrid_theory.jpg"
+            "/hybrid_theory.jpg"
         ]
     },
     {
@@ -170,9 +170,9 @@ export const initialCDs = [
             "disenchanted",
             "famous last words"
         ],
-        cover: "black_parade.jpg",
+        cover: "/black_parade.jpg",
         photos: [
-            "black_parade.jpg"
+            "/black_parade.jpg"
         ]
     },
     {
@@ -196,9 +196,9 @@ export const initialCDs = [
             "good in bed",
             "boys will be boys"
         ],
-        cover: "future_nostalgia.png",
+        cover: "/future_nostalgia.png",
         photos: [
-            "future_nostalgia.png"
+            "/future_nostalgia.png"
         ]
     },
     {
@@ -222,9 +222,9 @@ export const initialCDs = [
             "letterbomb",
             "wake me up when september ends"
         ],
-        cover: "american_idiot.jpg",
+        cover: "/american_idiot.jpg",
         photos: [
-            "american_idiot.jpg"
+            "/american_idiot.jpg"
         ]
     },
     {
@@ -252,9 +252,9 @@ export const initialCDs = [
             "happier than ever",
             "male fantasy"
         ],
-        cover: "happier_than_ever.png",
+        cover: "/happier_than_ever.png",
         photos: [
-            "happier_than_ever.png"
+            "/happier_than_ever.png"
         ]
     }
 ];

@@ -7,7 +7,7 @@ import './DetailsView.css'
 export function DetailsView({ cds }) {
     const { id } = useParams();
     const navigate = useNavigate();
-    const cd = cds[id];
+    const cd = cds[Number(id)];
 
     const [activePhotoIdx, setActivePhotoIdx] = useState(0);
 
@@ -21,6 +21,8 @@ export function DetailsView({ cds }) {
         setActivePhotoIdx((prev) => (prev - 1 + cd.photos.length) % cd.photos.length);
     };
 
+    console.log("Current CD:", cd);
+    console.log("Current Photo Path:", cd?.photos[activePhotoIdx]);
     return (
         <div className="detail-page-container">
             <button className="back-link" onClick={() => navigate('/')}>Back</button>
