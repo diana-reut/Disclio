@@ -1,5 +1,21 @@
+.right-panel {
+    flex: 1;
+    border-left: 1px solid #999;
+    padding-left: 30px;
+    display: flex;
+    flex-direction: column;
+    min-height: 450px;
+}
+
+.edit {
+    margin-top: auto;
+    align-self: flex-end;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
 .detail-page-container {
-    background: rgba(230, 210, 230, 0.8); 
+    background: rgba(230, 210, 230, 0.7); 
     padding: 20px;
     border-radius: 15px;
     font-family: 'Courier New', Courier, monospace; 
@@ -14,13 +30,6 @@
 .left-panel {
     flex: 1.2;
 }
-
-.right-panel {
-    flex: 1;
-    border-left: 1px solid #999;
-    padding-left: 30px;
-}
-
 
 .gallery-section {
     display: flex;

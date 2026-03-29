@@ -1,1 +1,7 @@
-
+body {
+    background-image: url("background_image.jpg");
+    background-repeat: no-repeat;
+    background-origin: padding-box;
+    background-size: cover;
+    background-color: black;
+}

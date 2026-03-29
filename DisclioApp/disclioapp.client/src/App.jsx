@@ -5,30 +5,48 @@ import './App.css'
 import { AddCDForm } from './forms/AddCDForm';
 import { DetailsView } from './views/DetailsView';
 import { MasterView } from './views/MasterView';
+import { GridView } from './views/GridView';
+import { SongListView } from './views/SongListView';
 
 function App() {
     const [cds, setCds] = useState(initialCDs);
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
+    const [viewMode, setViewMode] = useState('table');
 
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentItems = cds.slice(indexOfFirstItem, indexOfLastItem);
-
-    const addCD = (newCd) => setCds([...cds, newCd]);
+    const handleSaveCD = (newCd, id) => {
+        if (id !== null && id !== undefined) {
+            const updatedCds = [...cds];
+            updatedCds[id] = newCd;
+            setCds(updatedCds);
+        } else {
+            setCds([...cds, newCd]);
+        }
+    };
     const deleteCD = (index) => setCds(cds.filter((_, i) => i !== index));
 
     return (
         <div className="container">
-            <h1>CD Collection</h1>
             <Routes>
                 <Route path="/" element={
-                    <>
-                        <MasterView currentItems={currentItems} indexOfFirstItem={indexOfFirstItem} deleteCD={deleteCD} currentPage={currentPage} setCurrentPage={setCurrentPage} indexOfLastItem={indexOfLastItem} cds={cds} />
-                    </>
+                    <MasterView
+                        deleteCD={deleteCD}
+                        currentPage={currentPage}
+                        setCurrentPage={setCurrentPage}
+                        cds={cds}
+                    />
                 } />
-                <Route path="/add" element={<AddCDForm onSave={addCD} />} />
+                <Route path="/grid-view" element={
+                    <GridView
+                        deleteCD={deleteCD}
+                        currentPage={currentPage}
+                        setCurrentPage={setCurrentPage}
+                        cds={cds}
+                    />
+                } />
+                <Route path="/add" element={<AddCDForm onSave={handleSaveCD} />} />
+                <Route path="/edit/:id" element={<AddCDForm onSave={handleSaveCD} cds={cds} />} />
                 <Route path="/details/:id" element={<DetailsView cds={cds} />} />
+                <Route path="/details/:id/songs" element={<SongListView cds={cds} />} />
             </Routes>
         </div>
     );

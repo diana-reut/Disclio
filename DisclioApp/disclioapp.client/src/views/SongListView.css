@@ -1,0 +1,83 @@
+.song-view-container {
+    padding: 40px;
+    color: #000;
+    font-family: 'Courier New', Courier, monospace;
+    position: relative;
+    min-height: 80vh;
+    background-color: rgba(230, 210, 230, 0.7);
+    display: flex;
+    align-items: center;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.song-display-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px 1fr; /* Two side columns and a fixed center */
+    align-items: center;
+    gap: 20px;
+    margin-top: 40px;
+}
+
+.song-column {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.song-item {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+/* The Yellow Connector Lines */
+.connector-line {
+    flex-grow: 1;
+    height: 2px;
+    background: linear-gradient(90deg, #e3d312, transparent); /* Fades out toward text */
+    margin: 0 10px;
+}
+
+.left .connector-line {
+    background: linear-gradient(-90deg, #e3d312, transparent);
+}
+
+.song-text {
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 1.1rem;
+    white-space: nowrap;
+}
+
+/* Center Album Art */
+.center-art-section {
+    text-align: center;
+    z-index: 2;
+}
+
+.center-album-art {
+    width: 250px;
+    height: 250px;
+    object-fit: cover;
+    border: 4px solid #ccc;
+    box-shadow: 0 0 20px rgba(0,0,0,0.2);
+    margin: 10px 0;
+}
+
+.album-title-top {
+    font-size: 1.5rem;
+    letter-spacing: 3px;
+}
+
+.back-btn, .edit-link {
+    background: none;
+    border: none;
+    text-decoration: underline;
+    cursor: pointer;
+    font-family: inherit;
+    position: absolute;
+}
+
+.back-btn { top: 20px; left: 40px; }
+.edit-link { bottom: 20px; right: 40px; }

@@ -53,7 +53,6 @@ export function DetailsView({ cds }) {
                     <div className="description-box">
                         <h3>DESCRIPTION:</h3>
                         <p>{cd.description || "No description provided."}</p>
-                        <button className="edit-btn-inline">Edit</button>
                     </div>
                 </div>
 
@@ -83,7 +82,14 @@ export function DetailsView({ cds }) {
                         <Link to={`/details/${id}/songs`}>View song list &gt;&gt;</Link>
                     </div>
 
-                    <button className="edit-btn-bottom">Edit</button>
+                    <button
+                        className="edit small-btn"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/edit/${id}`);
+                        }}>
+                        Edit
+                    </button>
                 </div>
             </div>
         </div>

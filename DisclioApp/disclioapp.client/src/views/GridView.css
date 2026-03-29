@@ -1,0 +1,122 @@
+.table-actions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 0 5px;
+}
+
+.grid-view-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 80vh;
+}
+
+.album-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 160px); 
+    gap: 30px;
+    padding: 20px;
+    min-height: 550px;
+}
+
+.pagination {
+    margin-top: auto;
+    padding: 20px 0;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+.pg-text{
+    color: white;
+}
+
+.grid-view-container .page-btn {
+    color: white;
+}
+
+.grid-item {
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.grid-item:hover {
+    transform: scale(1.05);
+}
+
+.album-card {
+    display: flex;
+    align-items: center;
+    background: rgba(230, 210, 230, 0.7);
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.grid-cover {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
+    margin-right: 15px;
+}
+
+.grid-title {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1rem;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.grid-artist {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.album-info-overlay {
+    display: flex;
+    flex-direction: column;
+    justify-content: center; 
+    align-items: center;
+    flex: 1; 
+    text-align: center; 
+}
+
+.album-info-overlay footer {
+    margin-top: auto; 
+    width: 100%; 
+    display: flex;
+    justify-content: flex-end; 
+    padding-top: 10px;
+}
+
+@media (max-width: 600px) {
+    .album-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        gap: 15px;
+        padding: 10px;
+        min-height: auto;
+    }
+
+    .album-card {
+        flex-direction: column;
+        padding: 20px;
+    }
+
+    .grid-cover {
+        margin-right: 0;
+        margin-bottom: 15px;
+        width: 100%; 
+        max-width: 200px; 
+        height: auto;
+        aspect-ratio: 1 / 1;
+    }
+
+    .grid-view-container {
+        min-height: 95vh; 
+    }
+}
