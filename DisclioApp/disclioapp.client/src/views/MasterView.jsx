@@ -16,6 +16,9 @@ export function MasterView({ deleteCD, currentPage, setCurrentPage, cds }) {
                     <button className="small-btn" onClick={() => navigate('/add')}>
                         + Add Album
                     </button>
+                    <button className="small-btn" onClick={() => navigate('/stats')}>
+                        See Stats
+                    </button>
                     <button className="small-btn" onClick={() => navigate('/grid-view')}>
                         Switch to Grid View
                     </button>

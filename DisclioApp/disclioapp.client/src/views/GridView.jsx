@@ -17,6 +17,9 @@ export function GridView({ deleteCD, currentPage, setCurrentPage, cds }) {
                 <button className="small-btn" onClick={() => navigate('/add')} style={{ color: 'white' }}>
                     + Add Album
                 </button>
+                <button className="small-btn" onClick={() => navigate('/stats')}>
+                    See Stats
+                </button>
                 <button className="small-btn" onClick={() => navigate('/')} style={{ color: 'white' }}>
                     Switch to Tabular View
                 </button>
