@@ -43,7 +43,8 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': fileURLToPath(new URL('./src', import.meta.url))
-        }
+        },
+        dedupe: ['react', 'react-dom']
     },
     server: {
         proxy: {
@@ -56,6 +57,9 @@ export default defineConfig({
         https: {
             key: fs.readFileSync(keyFilePath),
             cert: fs.readFileSync(certFilePath),
-        }
+        },
+        optimizeDeps: {
+            include: ['recharts'],
+        },
     }
 })

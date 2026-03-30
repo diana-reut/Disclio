@@ -1,0 +1,31 @@
+.stats-container {
+    background: rgba(230, 210, 230, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 40px;
+    margin: 20px;
+    min-height: 80vh;
+    font-family: 'Courier New', Courier, monospace;
+    position: relative;
+}
+
+.stats-title {
+    text-align: center;
+    letter-spacing: 3px;
+    margin-bottom: 30px;
+}
+
+.chart-wrapper {
+    background: transparent;
+    padding: 20px;
+}
+
+.back-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: none;
+    border: 1px solid #333;
+    padding: 5px 15px;
+    cursor: pointer;
+}

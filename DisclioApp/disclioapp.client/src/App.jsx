@@ -7,11 +7,11 @@ import { DetailsView } from './views/DetailsView';
 import { MasterView } from './views/MasterView';
 import { GridView } from './views/GridView';
 import { SongListView } from './views/SongListView';
+import { StatisticsView } from './views/statistics/StatisticsView';
 
 function App() {
     const [cds, setCds] = useState(initialCDs);
     const [currentPage, setCurrentPage] = useState(1);
-    const [viewMode, setViewMode] = useState('table');
 
     const handleSaveCD = (newCd, id) => {
         if (id !== null && id !== undefined) {
@@ -47,6 +47,7 @@ function App() {
                 <Route path="/edit/:id" element={<AddCDForm onSave={handleSaveCD} cds={cds} />} />
                 <Route path="/details/:id" element={<DetailsView cds={cds} />} />
                 <Route path="/details/:id/songs" element={<SongListView cds={cds} />} />
+                <Route path="/stats" element={<StatisticsView cds={cds} />} />
             </Routes>
         </div>
     );
