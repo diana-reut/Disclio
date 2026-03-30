@@ -25,7 +25,7 @@ export function DetailsView({ cds }) {
     console.log("Current Photo Path:", cd?.photos[activePhotoIdx]);
     return (
         <div className="detail-page-container">
-            <button className="back-link" onClick={() => navigate('/')}>Back</button>
+            <button className="back-link" onClick={() => navigate(-1)}>Back</button>
 
             <div className="detail-main-content">
                 {/* LEFT SECTION: Gallery and Description */}

@@ -8,6 +8,7 @@ import { MasterView } from './views/MasterView';
 import { GridView } from './views/GridView';
 import { SongListView } from './views/SongListView';
 import { StatisticsView } from './views/statistics/StatisticsView';
+import { LandingPage } from './presentation/LandingPage';
 
 function App() {
     const [cds, setCds] = useState(initialCDs);
@@ -27,7 +28,8 @@ function App() {
     return (
         <div className="container">
             <Routes>
-                <Route path="/" element={
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/master-view" element={
                     <MasterView
                         deleteCD={deleteCD}
                         currentPage={currentPage}
