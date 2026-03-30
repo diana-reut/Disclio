@@ -1,6 +1,5 @@
 .stats-container {
-    background: rgba(230, 210, 230, 0.8);
-    backdrop-filter: blur(10px);
+    background: rgba(230, 210, 230, 0.7);
     border-radius: 20px;
     padding: 40px;
     margin: 20px;

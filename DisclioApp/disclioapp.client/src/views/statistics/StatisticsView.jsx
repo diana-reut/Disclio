@@ -22,27 +22,59 @@ export function StatisticsView({ cds = [] }) {
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                         data={data}
-                        margin={{ top: 30, right: 30, left: 20, bottom: 5 }}
+                        margin={{ top: 40, right: 30, left: 60, bottom: 70 }}
                     >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.1)" />
+                        <CartesianGrid
+                            strokeDasharray="3 3"
+                            vertical={false}
+                            stroke="rgba(0,0,0,0.1)"
+                        />
+
+                        <XAxis
+                            dataKey="rating"
+                            axisLine={{ stroke: '#333' }}
+                            tick={{ fill: '#333', fontSize: 14, fontFamily: 'Courier New' }}
+                            label={{
+                                value: 'Rating (Stars)',
+                                position: 'bottom', 
+                                offset: 20,
+                                style: { fill: '#333', fontWeight: 'bold', fontFamily: 'Courier New' }
+                            }}
+                        />
+
                         <YAxis
                             axisLine={{ stroke: '#333' }}
                             tick={{ fill: '#333' }}
                             allowDecimals={false}
-                            domain={[0, (dataMax) => Math.floor(dataMax * 1.2) || 5]}
+                            tickCount={6}
+                            domain={[0, (dataMax) => Math.ceil(dataMax * 1.2) || 5]}
+
+                            label={{
+                                value: 'Number of Albums',
+                                angle: -90,
+                                position: 'outsideLeft', 
+                                dx: -40,                 
+                                style: {
+                                    fill: '#333',
+                                    fontWeight: 'bold',
+                                    fontFamily: 'Courier New',
+                                    textAnchor: 'middle'
+                                }
+                            }}
                         />
-                        <YAxis
-                            axisLine={{ stroke: '#333' }}
-                            tick={{ fill: '#333' }}
-                            allowDecimals={false} 
-                        />
+
                         <Tooltip cursor={{ fill: 'rgba(255,255,255,0.2)' }} />
 
                         <Bar dataKey="count" radius={0}>
                             {data.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                             ))}
-                            <LabelList dataKey="count" position="top" style={{ fontFamily: 'Courier New', fontWeight: 'bold' }} />
+                            <LabelList
+                                dataKey="count"
+                                position="top"
+                                offset={10}
+                                style={{ fontFamily: 'Courier New', fontWeight: 'bold' }}
+                            />
                         </Bar>
                     </BarChart>
                 </ResponsiveContainer>
