@@ -20,12 +20,16 @@ export function StatisticsView({ cds = [] }) {
             <h2 className="stats-title">ALBUM RATINGS DISTRIBUTION</h2>
             <div style={{ width: '100%', height: '400px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data}>
+                    <BarChart
+                        data={data}
+                        margin={{ top: 30, right: 30, left: 20, bottom: 5 }}
+                    >
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.1)" />
-                        <XAxis
-                            dataKey="rating"
+                        <YAxis
                             axisLine={{ stroke: '#333' }}
-                            tick={{ fill: '#333', fontSize: 14, fontFamily: 'Courier New' }}
+                            tick={{ fill: '#333' }}
+                            allowDecimals={false}
+                            domain={[0, (dataMax) => Math.floor(dataMax * 1.2) || 5]}
                         />
                         <YAxis
                             axisLine={{ stroke: '#333' }}
