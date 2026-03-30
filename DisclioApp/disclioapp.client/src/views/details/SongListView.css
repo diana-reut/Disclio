@@ -13,7 +13,7 @@
 
 .song-display-grid {
     display: grid;
-    grid-template-columns: 1fr 300px 1fr; /* Two side columns and a fixed center */
+    grid-template-columns: 1fr 300px 1fr;
     align-items: center;
     gap: 20px;
     margin-top: 40px;
@@ -50,7 +50,6 @@
     white-space: nowrap;
 }
 
-/* Center Album Art */
 .center-art-section {
     text-align: center;
     z-index: 2;

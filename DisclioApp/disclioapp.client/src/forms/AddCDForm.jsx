@@ -196,7 +196,7 @@ export function AddCDForm({ onSave, cds }) {
 
                 <div className="form-actions">
                     <button className="small-btn" type="submit">{isEditMode ? "Update" : "Add"}</button>
-                    <button className="small-btn" type="button" onClick={() => navigate('/')}>Cancel</button>
+                    <button className="small-btn" type="button" onClick={() => navigate(-1)}>Cancel</button>
                 </div>
             </form>
         </div>
