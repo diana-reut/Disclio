@@ -3,10 +3,10 @@ import { Routes, Route } from 'react-router-dom';
 import { initialCDs } from './models/CDs';
 import './App.css'
 import { AddCDForm } from './forms/AddCDForm';
-import { DetailsView } from './views/DetailsView';
-import { MasterView } from './views/MasterView';
-import { GridView } from './views/GridView';
-import { SongListView } from './views/SongListView';
+import { DetailsView } from './views/details/DetailsView';
+import { MasterView } from './views/mainViews/MasterView';
+import { GridView } from './views/mainViews/GridView';
+import { SongListView } from './views/details/SongListView';
 import { StatisticsView } from './views/statistics/StatisticsView';
 import { LandingPage } from './presentation/LandingPage';
 import { AuthView } from './authentication/AuthView'
