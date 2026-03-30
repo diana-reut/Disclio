@@ -9,6 +9,7 @@ import { GridView } from './views/GridView';
 import { SongListView } from './views/SongListView';
 import { StatisticsView } from './views/statistics/StatisticsView';
 import { LandingPage } from './presentation/LandingPage';
+import { AuthView } from './authentication/AuthView'
 
 function App() {
     const [cds, setCds] = useState(initialCDs);
@@ -29,6 +30,7 @@ function App() {
         <div className="container">
             <Routes>
                 <Route path="/" element={<LandingPage />} />
+                <Route path="/auth" element={<AuthView />} />
                 <Route path="/master-view" element={
                     <MasterView
                         deleteCD={deleteCD}

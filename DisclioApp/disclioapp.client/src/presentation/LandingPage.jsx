@@ -8,7 +8,7 @@ export function LandingPage() {
         <div className="landing-container">
             {/* Top Navigation Bar */}
             <nav className="landing-nav">
-                <button className="nav-btn">Sign up</button>
+                <button className="nav-btn" onClick={() => navigate("/auth")}>Sign up</button>
                 <button className="nav-btn">Log in</button>
             </nav>
 
