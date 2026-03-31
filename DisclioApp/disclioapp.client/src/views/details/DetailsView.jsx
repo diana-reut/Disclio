@@ -27,7 +27,7 @@ export function DetailsView({ cds }) {
             </div>
 
             <div className="detail-main-content">
-                {/* GALLERY SECTION */}
+                
                 <div className="left-panel">
                     <div className="gallery-section">
                         <div className="main-photo-view">
@@ -50,7 +50,7 @@ export function DetailsView({ cds }) {
                     </div>
                 </div>
 
-                {/* INFO SECTION */}
+                
                 <div className="right-panel">
                     <div className="header-info">
                         <h2>{cd.title.toUpperCase()}</h2>

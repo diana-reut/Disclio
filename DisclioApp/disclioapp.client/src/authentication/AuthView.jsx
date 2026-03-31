@@ -11,7 +11,6 @@ export function AuthView() {
     const [errors, setErrors] = useState({});
     const [isShaking, setIsShaking] = useState(false);
 
-    // Update form data and clear errors for that specific field
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -31,13 +30,12 @@ export function AuthView() {
             }
         });
 
-        // Email specific regex
+        // email regex
         if (fieldsToValidate.includes('email') && formData.email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(formData.email)) newErrors.email = true;
         }
 
-        // Password matching
         if (fieldsToValidate.includes('confirmPassword') && formData.password !== formData.confirmPassword) {
             newErrors.confirmPassword = true;
         }
@@ -57,7 +55,7 @@ export function AuthView() {
     };
 
     const renderContent = () => {
-        // Shared error class generator
+       
         const getCls = (field) => `auth-input ${errors[field] ? 'input-error' : ''}`;
 
         switch (mode) {

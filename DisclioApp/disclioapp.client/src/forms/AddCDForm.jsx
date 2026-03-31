@@ -73,7 +73,7 @@ export function AddCDForm({ onSave, cds }) {
         <div id="form-container">
             <form onSubmit={handleSubmit} className="album-form">
                 <div className="form-grid">
-                    {/* Left Column */}
+                    
                     <div className="form-column">
                         <label>Title:</label>
                         <input
@@ -129,7 +129,7 @@ export function AddCDForm({ onSave, cds }) {
                         </div>
                     </div>
 
-                    {/* Right Column */}
+                    
                     <div className="form-column">
                         <label>Songs:</label>
                         {songs.map((song, index) => (

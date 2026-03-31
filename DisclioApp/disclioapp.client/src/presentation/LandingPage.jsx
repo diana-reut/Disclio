@@ -6,14 +6,14 @@ export function LandingPage() {
     const navigate = useNavigate();
     return (
         <div className="landing-container">
-            {/* Top Navigation Bar */}
+            
             <nav className="landing-nav">
                 <button className="nav-btn" onClick={() => navigate("/auth")}>Sign up</button>
                 <button className="nav-btn">Log in</button>
             </nav>
 
             <main className="landing-content">
-                {/* Left Section: Logo & Description */}
+                
                 <div className="content-left">
                     <p className="description">
                         Disclio is a digital archive of your personal CDs.
@@ -27,7 +27,7 @@ export function LandingPage() {
                     </div>
                 </div>
 
-                {/* Right Section: Image with Overlay Text */}
+                
                 <div className="content-right">
                     <div className="image-overlay-text">
                         Organisation in one click!

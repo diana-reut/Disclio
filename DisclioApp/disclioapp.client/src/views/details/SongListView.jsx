@@ -19,7 +19,7 @@ export function SongListView({ cds }) {
             <button className="back-btn" onClick={() => navigate(-1)}>Back</button>
             
             <div className="song-display-grid">
-                {/* LEFT COLUMN */}
+                
                 <div className="song-column left">
                     {leftColumn.map((song, i) => (
                         <div key={i} className="song-item">
@@ -29,7 +29,6 @@ export function SongListView({ cds }) {
                     ))}
                 </div>
 
-                {/* CENTER ART */}
                 <div className="center-art-section">
                     <h2 className="album-title-top">{cd.title.toUpperCase()}</h2>
                     <img src={cd.cover} alt={cd.title} className="center-album-art" />
@@ -39,7 +38,6 @@ export function SongListView({ cds }) {
                     </div>
                 </div>
 
-                {/* RIGHT COLUMN */}
                 <div className="song-column right">
                     {rightColumn.map((song, i) => (
                         <div key={i} className="song-item">

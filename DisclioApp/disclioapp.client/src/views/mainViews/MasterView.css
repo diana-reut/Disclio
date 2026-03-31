@@ -1,62 +1,112 @@
 #main-page {
+    width: 90vw;
+    max-width: 1000px;
+    min-height: 80vh;
+    margin: 5vh auto;
     background: rgba(230, 210, 230, 0.7);
-    padding: 20px;
+    padding: 30px;
     border-radius: 15px;
     font-family: 'Courier New', Courier, monospace;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    box-sizing: border-box;
+}
+
+.table-container {
+    width: 100%;
 }
 
 .table-actions-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    gap: 10px;
     margin-bottom: 20px;
-    padding: 0 5px;
 }
 
-.page-btn {
-    background: rgb(128, 128, 128, 0.2);
+.small-btn, .page-btn {
+    background: #8e2e7a;
+    color: white;
     border: none;
-    border-radius: 15px;
+    padding: 8px 12px;
+    border-radius: 5px;
     cursor: pointer;
-    font-size: 1.0rem;
-    color: #333;
-    transition: transform 0.2s;
-}
-
-.page-btn:hover {
-    transform: scale(1.2);
-}
-
-.table-container, .form-container, .detail-page {
-    width: 100%;
-    margin: 0 auto;
+    font-family: inherit;
+    font-size: 0.85rem;
 }
 
 table {
     width: 100%;
-    max-width: 1000px;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+th {
+    background: rgba(142, 46, 122, 0.1);
+    font-weight: bold;
+    text-transform: uppercase;
 }
 
 th, td {
-    text-align: center;
-    padding: 10px;
-    border: 1px solid #ddd;
-}
-
-form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    align-items: center;
-}
-
-input, textarea {
-    width: 100%;
-    padding: 8px;
-    box-sizing: border-box;
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
 }
 
 .cover-image-small {
-    width: 50px;
-    height: 50px;
+    width: 45px;
+    height: 45px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+@media (max-width: 600px) {
+    #main-page {
+        width: 95vw;
+        padding: 15px;
+        margin: 2vh auto;
+    }
+
+    .table-actions-header {
+        flex-direction: column;
+    }
+
+    .small-btn {
+        width: 100%;
+    }
+
+    thead {
+        display: none; 
+    }
+
+    tr {
+        display: block;
+        margin-bottom: 15px;
+        background: rgba(255, 255, 255, 0.4);
+        border-radius: 10px;
+        padding: 10px;
+    }
+
+    td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: none;
+        padding: 8px 5px;
+    }
+
+        
+    td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        color: #8e2e7a;
+    }
 }
