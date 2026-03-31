@@ -66,7 +66,7 @@ export function AddCDForm({ onSave, cds }) {
         }
         const cover = photos.length > 0 ? photos[0] : null;
         onSave({ ...formData, songs, photos, cover }, isEditMode ? Number(id) : null);
-        navigate('/');
+        navigate(-1);
     };
 
     return (

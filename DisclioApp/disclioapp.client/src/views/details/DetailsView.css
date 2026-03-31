@@ -1,113 +1,178 @@
-.right-panel {
-    flex: 1;
-    border-left: 1px solid #999;
-    padding-left: 30px;
-    display: flex;
-    flex-direction: column;
-    min-height: 450px;
-}
-
-.edit {
-    margin-top: auto;
-    align-self: flex-end;
-    padding: 10px 20px;
-    cursor: pointer;
-}
-
 .detail-page-container {
-    background: rgba(230, 210, 230, 0.7); 
+    background: rgba(230, 210, 230, 0.7);
     padding: 20px;
-    border-radius: 15px;
-    font-family: 'Courier New', Courier, monospace; 
+    min-height: 100vh;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.back-link, .edit-top-btn {
+    background: #8e2e7a;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
 }
 
 .detail-main-content {
     display: flex;
+    flex-direction: row;
     gap: 30px;
-    margin-top: 20px;
 }
 
 .left-panel {
     flex: 1.2;
+    min-width: 0;
+}
+
+.right-panel {
+    flex: 1;
+    min-width: 0;
 }
 
 .gallery-section {
     display: flex;
-    height: 350px;
-    gap: 10px;
-}
-
-.thumbnail-list {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    width: 80px;
-}
-
-.thumb {
-    width: 100%;
-    height: 70px;
-    object-fit: cover;
-    opacity: 0.6;
-    cursor: pointer;
-}
-
-.thumb.active {
-    opacity: 1;
-    border: 2px solid white;
+    flex-direction: row;
+    gap: 15px;
 }
 
 .main-photo-view {
     flex: 1;
+    height: 400px;
+    background: #111;
     position: relative;
+    border-radius: 10px;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #000;
 }
 
 .featured-image {
     max-width: 100%;
     max-height: 100%;
+    object-fit: contain;
 }
 
-.nav-arrow {
-    position: absolute;
-    background: none;
-    border: none;
-    color: white;
-    font-size: 2rem;
+.thumbnail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 80px;
+}
+
+.thumb {
+    width: 80px;
+    height: 60px;
+    object-fit: cover;
     cursor: pointer;
-    z-index: 10;
+    border-radius: 4px;
+    opacity: 0.5;
 }
 
-.nav-arrow.left {
-    left: 10px;
+.thumb.active {
+    opacity: 1;
+    border: 2px solid #8e2e7a;
 }
 
-.nav-arrow.right {
-    right: 10px;
+.header-info h2 {
+    margin: 0 0 10px 0;
+    font-size: 1.8rem;
+    color: #333;
+}
+
+.meta-info {
+    margin-bottom: 10px;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.separator {
+    margin: 0 10px;
+}
+
+.stars-display {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+}
+
+.info-grid {
+    margin-bottom: 25px;
 }
 
 .info-row {
     display: flex;
     justify-content: space-between;
-    margin: 15px 0;
-    border-bottom: 1px solid rgba(0,0,0,0.1);
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+    font-size: 0.9rem;
 }
 
-.star-filled {
-    color: gold;
+.song-list-link {
+    margin-bottom: 30px;
 }
 
-.star-empty {
-    color: #ccc;
-}
+    .song-list-link a {
+        color: #8e2e7a;
+        text-decoration: none;
+        font-weight: bold;
+        border: 1px solid #8e2e7a;
+        padding: 10px;
+        display: inline-block;
+        width: 100%;
+        text-align: center;
+        box-sizing: border-box;
+    }
 
 .description-box {
-    margin-top: 20px;
-    padding: 10px;
-    border: 1px solid #999;
-    min-height: 150px;
-    position: relative;
+    background: #f9f9f9;
+    padding: 15px;
+    border: 1px dashed #999;
+}
+
+@media (max-width: 768px) {
+    .detail-main-content {
+        flex-direction: column; 
+    }
+
+    .gallery-section {
+        flex-direction: column;
+    }
+
+    .main-photo-view {
+        height: 300px;
+    }
+
+    .thumbnail-list {
+        flex-direction: row;
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 5px;
+    }
+
+    .thumb {
+        width: 70px;
+        flex-shrink: 0; 
+    }
+
+    .right-panel {
+        padding-left: 0;
+        border-left: none;
+    }
+
+    .header-info h2 {
+        font-size: 1.5rem;
+    }
+
+    .info-row {
+        font-size: 0.8rem;
+    }
 }
