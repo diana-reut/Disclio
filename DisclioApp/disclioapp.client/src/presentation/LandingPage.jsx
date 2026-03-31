@@ -8,8 +8,12 @@ export function LandingPage() {
         <div className="landing-container">
             
             <nav className="landing-nav">
-                <button className="nav-btn" onClick={() => navigate("/auth")}>Sign up</button>
-                <button className="nav-btn">Log in</button>
+                <button className="nav-btn" onClick={() => navigate("/auth", { state: { initialMode: 'signup1' } })}>
+                    Sign up
+                </button>
+                <button className="nav-btn" onClick={() => navigate("/auth", { state: { initialMode: 'login' } })}>
+                    Log in
+                </button>
             </nav>
 
             <main className="landing-content">

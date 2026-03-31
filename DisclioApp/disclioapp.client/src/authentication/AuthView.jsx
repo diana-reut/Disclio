@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './AuthView.css';
 
 export function AuthView() {
     const navigate = useNavigate();
-    const [mode, setMode] = useState('login');
+
+    const location = useLocation();
+    const [mode, setMode] = useState(location.state?.initialMode || 'login');
+
     const [formData, setFormData] = useState({
         username: '', password: '', firstName: '', lastName: '', email: '', confirmPassword: ''
     });
