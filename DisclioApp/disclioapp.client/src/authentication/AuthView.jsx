@@ -11,6 +11,16 @@ export function AuthView() {
     const [errors, setErrors] = useState({});
     const [isShaking, setIsShaking] = useState(false);
 
+    // Clears sensitive data when jumping between Login and Signup
+    const switchMode = (newMode) => {
+        setFormData({
+            username: '', password: '', firstName: '', lastName: '',
+            email: '', confirmPassword: ''
+        });
+        setErrors({});
+        setMode(newMode);
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -25,12 +35,9 @@ export function AuthView() {
     const handleAction = (nextMode, fieldsToValidate) => {
         let newErrors = {};
         fieldsToValidate.forEach(field => {
-            if (!formData[field]) {
-                newErrors[field] = true;
-            }
+            if (!formData[field]) newErrors[field] = true;
         });
 
-        // email regex
         if (fieldsToValidate.includes('email') && formData.email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(formData.email)) newErrors.email = true;
@@ -55,7 +62,6 @@ export function AuthView() {
     };
 
     const renderContent = () => {
-       
         const getCls = (field) => `auth-input ${errors[field] ? 'input-error' : ''}`;
 
         switch (mode) {
@@ -66,15 +72,15 @@ export function AuthView() {
                         <div className="auth-form-content">
                             <div className="input-group">
                                 <label>Username</label>
-                                <input name="username" className={getCls('username')} type="text" onChange={handleChange} placeholder="Type your username" />
+                                <input name="username" value={formData.username} className={getCls('username')} type="text" onChange={handleChange} placeholder="Type your username" />
                             </div>
                             <div className="input-group">
                                 <label>Password</label>
-                                <input name="password" className={getCls('password')} type="password" onChange={handleChange} placeholder="Type your password" />
+                                <input name="password" value={formData.password} className={getCls('password')} type="password" onChange={handleChange} placeholder="Type your password" />
                             </div>
                         </div>
                         <button className="auth-btn main" onClick={() => handleAction('master', ['username', 'password'])}>LOGIN</button>
-                        <p className="auth-footer">Don't have an account? <span onClick={() => setMode('signup1')}>SIGN UP</span></p>
+                        <p className="auth-footer">Don't have an account? <span onClick={() => switchMode('signup1')}>SIGN UP</span></p>
                     </div>
                 );
             case 'signup1':
@@ -84,18 +90,19 @@ export function AuthView() {
                         <div className="auth-form-content">
                             <div className="input-group">
                                 <label>First Name</label>
-                                <input name="firstName" className={getCls('firstName')} type="text" onChange={handleChange} />
+                                <input name="firstName" value={formData.firstName} className={getCls('firstName')} type="text" onChange={handleChange} />
                             </div>
                             <div className="input-group">
                                 <label>Last Name</label>
-                                <input name="lastName" className={getCls('lastName')} type="text" onChange={handleChange} />
+                                <input name="lastName" value={formData.lastName} className={getCls('lastName')} type="text" onChange={handleChange} />
                             </div>
                             <div className="input-group">
                                 <label>Email</label>
-                                <input name="email" className={getCls('email')} type="email" onChange={handleChange} />
+                                <input name="email" value={formData.email} className={getCls('email')} type="email" onChange={handleChange} />
                             </div>
                         </div>
                         <button className="auth-btn main" onClick={() => handleAction('signup2', ['firstName', 'lastName', 'email'])}>CONTINUE</button>
+                        <p className="auth-footer">Back to <span onClick={() => switchMode('login')}>LOGIN</span></p>
                     </div>
                 );
             case 'signup2':
@@ -105,11 +112,11 @@ export function AuthView() {
                         <div className="auth-form-content">
                             <div className="input-group">
                                 <label>Password</label>
-                                <input name="password" className={getCls('password')} type="password" onChange={handleChange} />
+                                <input name="password" value={formData.password} className={getCls('password')} type="password" onChange={handleChange} autoComplete="new-password" />
                             </div>
                             <div className="input-group">
                                 <label>Confirm Password</label>
-                                <input name="confirmPassword" className={getCls('confirmPassword')} type="password" onChange={handleChange} />
+                                <input name="confirmPassword" value={formData.confirmPassword} className={getCls('confirmPassword')} type="password" onChange={handleChange} autoComplete="new-password" />
                                 {errors.confirmPassword && <small className="error-text">Passwords do not match</small>}
                             </div>
                         </div>
@@ -124,7 +131,7 @@ export function AuthView() {
                             <div className="success-icon slide-in">✔</div>
                             <p>Your account is ready!</p>
                         </div>
-                        <button className="auth-btn main" onClick={() => setMode('login')}>GO TO LOGIN</button>
+                        <button className="auth-btn main" onClick={() => switchMode('login')}>GO TO LOGIN</button>
                     </div>
                 );
             default: return null;
