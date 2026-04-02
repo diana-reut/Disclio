@@ -46,11 +46,11 @@ html, body {
     transition: all 0.3s ease;
 }
 
-.nav-btn:hover {
-    background-color: #ffffff;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
-    transform: translateY(-2px);
-}
+    .nav-btn:hover {
+        background-color: #ffffff;
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+        transform: translateY(-2px);
+    }
 
 .landing-content {
     display: flex;
@@ -75,6 +75,13 @@ html, body {
     max-width: 500px;
     margin-bottom: 20px;
     text-align: justify;
+    opacity: 0;
+    animation: fadeInUp 1s ease-out forwards 0.2s;
+}
+
+.logo-container {
+    opacity: 0;
+    animation: fadeInUp 1s ease-out forwards 0.6s, float 5s ease-in-out infinite 1.6s;
 }
 
 .main-logo {
@@ -84,14 +91,27 @@ html, body {
 
 .content-right {
     flex: 1;
-    background: linear-gradient(rgba(61, 35, 82, 0.7), rgba(61, 35, 82, 0.7)), url('/wallpaper_phone.jpg');
-    background-size: cover;
-    background-position: center;
+    background: rgba(61, 35, 82, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
+    overflow: hidden;
 }
+
+    .content-right::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(rgba(61, 35, 82, 0.7), rgba(61, 35, 82, 0.7)), url('/wallpaper_phone.jpg');
+        background-size: cover;
+        background-position: center;
+        z-index: 1;
+        animation: slowZoom 20s linear infinite alternate;
+    }
 
 .image-overlay-text {
     background: rgba(0, 0, 0, 0.7);
@@ -101,16 +121,95 @@ html, body {
     text-align: center;
     width: 100%;
     z-index: 10;
+    transform: translateX(100%);
+    animation: slideInRight 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards 1s;
+}
+
+.rolling-cd-container {
+    position: absolute;
+    bottom: 30px;
+    left: 0;
+    width: 100px; 
+    height: 100px;
+    z-index: 60;
+    pointer-events: none;
+    transform: translateX(-150px);
+    animation: rollIn 4s cubic-bezier(0.35, 0, 0.25, 1) forwards 1.2s;
+}
+
+.rolling-cd {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 5px 15px rgba(0,0,0,0.5));
+    animation: spinIn 4s cubic-bezier(0.35, 0, 0.25, 1) forwards 1.2s;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-15px);
+    }
+}
+
+@keyframes slowZoom {
+    from {
+        transform: scale(1);
+    }
+
+    to {
+        transform: scale(1.15);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes rollIn {
+    0% {
+        transform: translateX(-150px);
+    }
+
+    100% {
+        transform: translateX(calc(100vw - 150px));
+    }
+}
+
+@keyframes spinIn {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(1440deg);
+    }
 }
 
 @media (max-width: 768px) {
-    html, body {
-        overflow-x: hidden;
-    }
-
     .landing-nav {
         height: 15%;
-        justify-content: center; 
+        justify-content: center;
         padding: 20px;
     }
 
@@ -137,15 +236,11 @@ html, body {
         background: rgba(0, 0, 0, 0.6);
         padding: 25px;
         border-radius: 15px;
-        margin-bottom: 30px;
-        width: 90%;
-        max-width: 400px;
     }
 
     .main-logo {
         width: 70%;
         max-width: 280px;
-        margin-bottom: 0;
     }
 
     .content-right {
@@ -157,10 +252,31 @@ html, body {
         z-index: 1;
     }
 
+        .content-right::before {
+            animation: none;
+        }
+
     .image-overlay-text {
         position: absolute;
-        bottom: 12%;
+        bottom: 15%;
         font-size: 1.2rem;
-        padding: 15px;
+        transform: translateX(0);
+        animation: fadeInUp 0.8s ease-out forwards 1.2s;
+    }
+
+    .rolling-cd-container {
+        width: 60px;
+        height: 60px;
+        animation-duration: 3s;
+    }
+
+    @keyframes rollIn {
+        0% {
+            transform: translateX(-100px);
+        }
+
+        100% {
+            transform: translateX(calc(100vw - 80px));
+        }
     }
 }

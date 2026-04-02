@@ -1,3 +1,4 @@
+import '@testing-library/jest-dom/vitest';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './GridView.css';
@@ -25,31 +26,37 @@ export function GridView({ deleteCD, currentPage, setCurrentPage, cds }) {
                 </button>
             </div>
             <div className="album-grid">
-                {currentItems.map((cd, index) => (
-                    <div
-                        key={index}
-                        className="grid-item"
-                        onClick={() => navigate(`/details/${indexOfFirstItem + index}`)}
-                    >
-                        <div className="album-card">
-                            <img src={cd.cover} className="grid-cover" alt={cd.title} />
-
-                            <div className="album-info-overlay">
-                                <h3 className="grid-title">{cd.title.toUpperCase()}</h3>
-                                <p className="grid-artist">{cd.artist}</p>
-                                <footer> <button
-                                    type="button"
-                                    className="small-btn"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        deleteCD(indexOfFirstItem + index)
-                                    }}>
-                                    🗑️
-                                </button></footer>
+                {currentItems.length > 0 ? (
+                    currentItems.map((cd, index) => (
+                        <div
+                            key={index}
+                            className="grid-item"
+                            onClick={() => navigate(`/details/${indexOfFirstItem + index}`)}
+                        >
+                            <div className="album-card">
+                                <img src={cd.cover} className="grid-cover" alt={cd.title} />
+                                <div className="album-info-overlay">
+                                    <h3 className="grid-title">{cd.title.toUpperCase()}</h3>
+                                    <p className="grid-artist">{cd.artist}</p>
+                                    <footer>
+                                        <button
+                                            type="button"
+                                            className="small-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                deleteCD(indexOfFirstItem + index);
+                                            }}
+                                        >
+                                            🗑️
+                                        </button>
+                                    </footer>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    ))
+                ) : (
+                    <p className="no-albums">No albums available.</p>
+                )}
             </div>
             <div className="pagination">
                 <button className="page-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>Prev</button>

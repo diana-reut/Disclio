@@ -30,34 +30,39 @@ export function MasterView({ deleteCD, currentPage, setCurrentPage, cds }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {currentItems.map((cd, index) => (
+                        {currentItems.map((cd, rowIndex) => (
                             <tr
-                                key={index}
-                                onClick={() => navigate(`/details/${indexOfFirstItem + index}`)}
+                                key={indexOfFirstItem + rowIndex}
+                                onClick={() => navigate(`/details/${indexOfFirstItem + rowIndex}`)}
                                 className="table-row-hover"
+                                style={{ perspective: "1000px" }} 
                             >
-                                <td data-label="ID">{indexOfFirstItem + index + 1}</td>
-                                <td data-label="Cover">
-                                    <img className="cover-image-small" src={cd.cover} alt={cd.title} />
-                                </td>
-                                <td data-label="Title">{cd.title}</td>
-                                <td data-label="Artist">{cd.artist}</td>
-                                <td data-label="Actions">
-                                    <div style={{ display: 'flex', gap: '5px' }}>
-                                        <button
-                                            className="small-btn"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                navigate(`/edit/${indexOfFirstItem + index}`);
-                                            }}>Edit</button>
-                                        <button
-                                            className="small-btn"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                deleteCD(indexOfFirstItem + index);
-                                            }}>🗑️</button>
-                                    </div>
-                                </td>
+                                {[
+                                    { label: "ID", content: indexOfFirstItem + rowIndex + 1 },
+                                    { label: "Cover", content: <img className="cover-image-small" src={cd.cover} alt={cd.title} /> },
+                                    { label: "Title", content: cd.title },
+                                    { label: "Artist", content: cd.artist },
+                                    {
+                                        label: "Actions", content: (
+                                            <div style={{ display: 'flex', gap: '5px' }}>
+                                                <button className="small-btn" onClick={(e) => { e.stopPropagation(); navigate(`/edit/${indexOfFirstItem + rowIndex}`); }}>Edit</button>
+                                                <button className="small-btn" onClick={(e) => { e.stopPropagation(); deleteCD(indexOfFirstItem + rowIndex); }}>🗑️</button>
+                                            </div>
+                                        )
+                                    }
+                                ].map((column, colIndex) => (
+                                    <td
+                                        key={colIndex}
+                                        data-label={column.label}
+                                        className="table-cell-animate"
+                                        style={{
+                                            
+                                            animationDelay: `${(rowIndex * 0.15) + (colIndex * 0.05)}s`
+                                        }}
+                                    >
+                                        {column.content}
+                                    </td>
+                                ))}
                             </tr>
                         ))}
                     </tbody>

@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1775144201521" clover="3.2.0">
+  <project timestamp="1775144201521" name="All files">
+    <metrics statements="118" coveredstatements="112" conditionals="56" coveredconditionals="56" methods="69" coveredmethods="63" elements="243" coveredelements="231" complexity="0" loc="118" ncloc="118" packages="4" files="12" classes="12"/>
+    <package name="forms">
+      <metrics statements="50" coveredstatements="45" conditionals="40" coveredconditionals="40" methods="27" coveredmethods="24"/>
+      <file name="AddCDForm.css" path="D:\Disclio\DisclioApp\disclioapp.client\src\forms\AddCDForm.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="AddCDForm.jsx" path="D:\Disclio\DisclioApp\disclioapp.client\src\forms\AddCDForm.jsx">
+        <metrics statements="50" coveredstatements="45" conditionals="40" coveredconditionals="40" methods="27" coveredmethods="24"/>
+        <line num="7" count="48" type="stmt"/>
+        <line num="8" count="48" type="stmt"/>
+        <line num="9" count="48" type="stmt"/>
+        <line num="11" count="48" type="cond" truecount="2" falsecount="0"/>
+        <line num="13" count="48" type="stmt"/>
+        <line num="24" count="48" type="cond" truecount="2" falsecount="0"/>
+        <line num="25" count="48" type="cond" truecount="2" falsecount="0"/>
+        <line num="27" count="48" type="stmt"/>
+        <line num="29" count="48" type="stmt"/>
+        <line num="30" count="0" type="stmt"/>
+        <line num="31" count="0" type="stmt"/>
+        <line num="32" count="0" type="stmt"/>
+        <line num="35" count="48" type="stmt"/>
+        <line num="37" count="48" type="stmt"/>
+        <line num="38" count="2" type="stmt"/>
+        <line num="39" count="3" type="stmt"/>
+        <line num="40" count="2" type="stmt"/>
+        <line num="44" count="48" type="stmt"/>
+        <line num="45" count="1" type="stmt"/>
+        <line num="48" count="48" type="stmt"/>
+        <line num="49" count="4" type="stmt"/>
+        <line num="52" count="48" type="stmt"/>
+        <line num="53" count="6" type="stmt"/>
+        <line num="55" count="6" type="stmt"/>
+        <line num="56" count="6" type="stmt"/>
+        <line num="58" count="6" type="cond" truecount="4" falsecount="0"/>
+        <line num="59" count="2" type="stmt"/>
+        <line num="61" count="2" type="stmt"/>
+        <line num="62" count="1" type="stmt"/>
+        <line num="65" count="2" type="stmt"/>
+        <line num="67" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="68" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="69" count="6" type="stmt"/>
+        <line num="72" count="48" type="stmt"/>
+        <line num="84" count="5" type="stmt"/>
+        <line num="93" count="5" type="stmt"/>
+        <line num="97" count="1" type="stmt"/>
+        <line num="100" count="1" type="stmt"/>
+        <line num="103" count="1" type="stmt"/>
+        <line num="110" count="1" type="stmt"/>
+        <line num="123" count="240" type="stmt"/>
+        <line num="126" count="2" type="stmt"/>
+        <line num="139" count="5" type="stmt"/>
+        <line num="146" count="0" type="stmt"/>
+        <line num="151" count="1" type="stmt"/>
+        <line num="171" count="12" type="stmt"/>
+        <line num="185" count="3" type="stmt"/>
+        <line num="193" count="0" type="stmt"/>
+        <line num="199" count="1" type="stmt"/>
+        <line num="204" count="1" type="stmt"/>
+      </file>
+    </package>
+    <package name="presentation">
+      <metrics statements="4" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="3" coveredmethods="3"/>
+      <file name="LandingPage.css" path="D:\Disclio\DisclioApp\disclioapp.client\src\presentation\LandingPage.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="LandingPage.jsx" path="D:\Disclio\DisclioApp\disclioapp.client\src\presentation\LandingPage.jsx">
+        <metrics statements="4" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="3" coveredmethods="3"/>
+        <line num="6" count="4" type="stmt"/>
+        <line num="7" count="4" type="stmt"/>
+        <line num="11" count="1" type="stmt"/>
+        <line num="14" count="1" type="stmt"/>
+      </file>
+    </package>
+    <package name="views.details">
+      <metrics statements="33" coveredstatements="33" conditionals="14" coveredconditionals="14" methods="15" coveredmethods="15"/>
+      <file name="DetailsView.css" path="D:\Disclio\DisclioApp\disclioapp.client\src\views\details\DetailsView.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="DetailsView.jsx" path="D:\Disclio\DisclioApp\disclioapp.client\src\views\details\DetailsView.jsx">
+        <metrics statements="15" coveredstatements="15" conditionals="8" coveredconditionals="8" methods="10" coveredmethods="10"/>
+        <line num="6" count="11" type="stmt"/>
+        <line num="7" count="11" type="stmt"/>
+        <line num="8" count="11" type="stmt"/>
+        <line num="10" count="11" type="stmt"/>
+        <line num="12" count="11" type="cond" truecount="2" falsecount="0"/>
+        <line num="14" count="10" type="stmt"/>
+        <line num="15" count="1" type="stmt"/>
+        <line num="18" count="10" type="stmt"/>
+        <line num="19" count="1" type="stmt"/>
+        <line num="22" count="10" type="stmt"/>
+        <line num="25" count="1" type="stmt"/>
+        <line num="26" count="1" type="stmt"/>
+        <line num="41" count="20" type="stmt"/>
+        <line num="45" count="1" type="stmt"/>
+        <line num="63" count="50" type="cond" truecount="2" falsecount="0"/>
+      </file>
+      <file name="SongListView.css" path="D:\Disclio\DisclioApp\disclioapp.client\src\views\details\SongListView.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="SongListView.jsx" path="D:\Disclio\DisclioApp\disclioapp.client\src\views\details\SongListView.jsx">
+        <metrics statements="18" coveredstatements="18" conditionals="6" coveredconditionals="6" methods="5" coveredmethods="5"/>
+        <line num="7" count="7" type="stmt"/>
+        <line num="8" count="7" type="stmt"/>
+        <line num="9" count="7" type="stmt"/>
+        <line num="11" count="7" type="cond" truecount="2" falsecount="0"/>
+        <line num="13" count="6" type="stmt"/>
+        <line num="14" count="6" type="stmt"/>
+        <line num="15" count="6" type="stmt"/>
+        <line num="17" count="6" type="stmt"/>
+        <line num="25" count="6" type="stmt"/>
+        <line num="30" count="6" type="stmt"/>
+        <line num="36" count="1" type="stmt"/>
+        <line num="46" count="12" type="stmt"/>
+        <line num="47" count="12" type="stmt"/>
+        <line num="49" count="12" type="stmt"/>
+        <line num="79" count="12" type="stmt"/>
+        <line num="80" count="12" type="stmt"/>
+        <line num="82" count="12" type="stmt"/>
+        <line num="97" count="1" type="stmt"/>
+      </file>
+    </package>
+    <package name="views.mainViews">
+      <metrics statements="31" coveredstatements="30" conditionals="2" coveredconditionals="2" methods="24" coveredmethods="21"/>
+      <file name="GridView.css" path="D:\Disclio\DisclioApp\disclioapp.client\src\views\mainViews\GridView.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="GridView.jsx" path="D:\Disclio\DisclioApp\disclioapp.client\src\views\mainViews\GridView.jsx">
+        <metrics statements="15" coveredstatements="15" conditionals="2" coveredconditionals="2" methods="11" coveredmethods="11"/>
+        <line num="7" count="16" type="stmt"/>
+        <line num="9" count="16" type="stmt"/>
+        <line num="11" count="16" type="stmt"/>
+        <line num="12" count="16" type="stmt"/>
+        <line num="13" count="16" type="stmt"/>
+        <line num="15" count="16" type="stmt"/>
+        <line num="18" count="1" type="stmt"/>
+        <line num="21" count="1" type="stmt"/>
+        <line num="24" count="1" type="stmt"/>
+        <line num="31" count="102" type="stmt"/>
+        <line num="34" count="2" type="stmt"/>
+        <line num="46" count="1" type="stmt"/>
+        <line num="47" count="1" type="stmt"/>
+        <line num="62" count="2" type="stmt"/>
+        <line num="64" count="2" type="stmt"/>
+      </file>
+      <file name="MasterView.css" path="D:\Disclio\DisclioApp\disclioapp.client\src\views\mainViews\MasterView.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="MasterView.jsx" path="D:\Disclio\DisclioApp\disclioapp.client\src\views\mainViews\MasterView.jsx">
+        <metrics statements="16" coveredstatements="15" conditionals="0" coveredconditionals="0" methods="13" coveredmethods="10"/>
+        <line num="6" count="11" type="stmt"/>
+        <line num="7" count="11" type="stmt"/>
+        <line num="9" count="11" type="stmt"/>
+        <line num="10" count="11" type="stmt"/>
+        <line num="11" count="11" type="stmt"/>
+        <line num="13" count="11" type="stmt"/>
+        <line num="17" count="1" type="stmt"/>
+        <line num="18" count="1" type="stmt"/>
+        <line num="19" count="1" type="stmt"/>
+        <line num="34" count="55" type="stmt"/>
+        <line num="36" count="1" type="stmt"/>
+        <line num="48" count="1" type="stmt"/>
+        <line num="49" count="1" type="stmt"/>
+        <line num="54" count="275" type="stmt"/>
+        <line num="73" count="0" type="stmt"/>
+        <line num="75" count="1" type="stmt"/>
+      </file>
+    </package>
+  </project>
+</coverage>

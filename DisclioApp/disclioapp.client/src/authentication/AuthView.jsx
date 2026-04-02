@@ -57,6 +57,12 @@ export function AuthView() {
         }
 
         if (nextMode === 'master') {
+            const days = 7;
+            const expires = new Date(Date.now() + days * 864e5).toUTCString();
+
+            document.cookie = `username=${encodeURIComponent(formData.username)}; expires=${expires}; path=/; SameSite=Lax`;
+
+            document.cookie = `isLoggedIn=true; expires=${expires}; path=/; SameSite=Lax`;
             navigate('/master-view');
         } else {
             setMode(nextMode);

@@ -38,6 +38,10 @@ export function LandingPage() {
                     </div>
                 </div>
             </main>
+
+            <div className="rolling-cd-container">
+                <img src="/cd.png" alt="Rolling CD" className="rolling-cd" />
+            </div>
         </div>
     );
 }

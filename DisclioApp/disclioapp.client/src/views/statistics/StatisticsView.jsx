@@ -15,7 +15,8 @@ export function StatisticsView({ cds = [] }) {
 
     return (
         <div className="stats-container">
-            <button className="back-btn" onClick={() => navigate(-1)}>Back</button>
+            <button className="small-btn" onClick={() => navigate(-1)}>Back</button>
+            <button className='small-btn' onClick={() => navigate('/dashboard')}>Dashboard</button>
 
             <h2 className="stats-title">ALBUM RATINGS DISTRIBUTION</h2>
             <div style={{ width: '100%', height: '400px' }}>

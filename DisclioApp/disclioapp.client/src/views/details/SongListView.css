@@ -1,58 +1,58 @@
 .song-view-container {
-    width: 90vw;
-    height: 85vh;
-    margin: 5vh auto; 
+    padding: 40px;
+    min-height: 100vh;
+    color: white;
     display: flex;
     flex-direction: column;
-    justify-content: center; 
     align-items: center;
-    background-color: rgba(230, 210, 230, 0.7);
-    border-radius: 12px;
-    padding: 20px;
-    position: relative;
-    overflow-y: auto; 
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    box-sizing: border-box;
 }
 
 .song-display-grid {
     display: grid;
-    grid-template-columns: 1fr 300px 1fr;
-    align-items: center;
+    background: rgba(230, 210, 230, 0.7);
+    border-radius: 12px;
+    grid-template-columns: 1fr 350px 1fr;
     gap: 20px;
+    align-items: center;
     width: 100%;
-    max-width: 1200px; 
-    margin: auto;
+    max-width: 1200px;
+    margin-top: 50px;
 }
 
 .song-column {
     display: flex;
     flex-direction: column;
-    gap: 30px;
+    gap: 15px;
+}
+
+.song-column.left {
+    text-align: right;
+}
+
+.song-column.right {
+    text-align: left;
 }
 
 .song-item {
     display: flex;
     align-items: center;
-    position: relative;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.1rem;
+}
+
+.left .song-item {
+    justify-content: flex-end;
+}
+
+.right .song-item {
+    justify-content: flex-start;
 }
 
 .connector-line {
-    flex-grow: 1;
-    height: 2px;
-    background: linear-gradient(90deg, #e3d312, transparent); 
+    height: 1px;
+    background: rgba(255, 255, 255, 0.3);
+    width: 30px;
     margin: 0 10px;
-}
-
-.left .connector-line {
-    background: linear-gradient(-90deg, #e3d312, transparent);
-}
-
-.song-text {
-    font-weight: bold;
-    text-transform: uppercase;
-    font-size: 1.1rem;
-    white-space: nowrap;
 }
 
 .center-art-section {
@@ -61,32 +61,44 @@
 }
 
 .center-album-art {
-    width: 250px;
-    height: 250px;
+    width: 300px;
+    height: 300px;
     object-fit: cover;
-    border: 4px solid #ccc;
-    box-shadow: 0 0 20px rgba(0,0,0,0.2);
-    margin: 10px 0;
+    border-radius: 4px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.1);
 }
 
 .album-title-top {
-    font-size: 1.5rem;
-    letter-spacing: 3px;
+    margin-bottom: 15px;
+    letter-spacing: 4px;
+    font-weight: 300;
+}
+
+.artist-name-bottom {
+    margin-top: 15px;
+    font-style: italic;
+    opacity: 0.8;
+}
+
+.stars-display {
+    color: #ffd700;
+    margin-top: 10px;
 }
 
 .back-btn, .edit-link {
-    background: #8e2e7a;
+    background: none;
+    border: 1px solid white;
     color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 5px;
+    padding: 8px 20px;
     cursor: pointer;
-    font-weight: bold;
+    transition: 0.3s;
 }
 
-.back-btn { top: 20px; left: 40px; }
-.edit-link { bottom: 20px; right: 40px; }
-
+    .back-btn:hover, .edit-link:hover {
+        background: white;
+        color: black;
+    }
 
 
 @media (max-width: 850px) {
@@ -125,6 +137,16 @@
         gap: 15px; 
     }
 
+        .song-column.left {
+            text-align: left;
+            text-align: left;
+        }
+
+        .song-column.right {
+            text-align: right;
+            text-align: right;
+        }
+
     .song-item {
         width: 100%;
         display: flex;
@@ -134,8 +156,10 @@
 
     .song-text {
         font-size: 0.9rem;
+        padding-right: 10px;
+        padding-left: 10px;
         white-space: normal;
-        max-width: 80%; 
+        max-width: 80%;
     }
 
     .connector-line {

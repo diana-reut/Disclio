@@ -75,34 +75,37 @@ export function AddCDForm({ onSave, cds }) {
                 <div className="form-grid">
                     
                     <div className="form-column">
-                        <label>Title:</label>
+                        <label htmlFor="title">Title:</label>
                         <input
+                            id="title"
                             type="text"
                             className={`form-input ${errors.title ? "error-shake" : ""}`}
                             value={formData.title}
                             onChange={e => setFormData({ ...formData, title: e.target.value })}
                         />
 
-                        <label>Artist:</label>
+                        <label htmlFor="artist">Artist:</label>
                         <input
+                            id="artist"
                             type="text"
                             className={`form-input ${errors.artist ? "error-shake" : ""}`}
                             value={formData.artist}
                             onChange={e => setFormData({ ...formData, artist: e.target.value })}
                         />
 
-                        <label>Category:</label>
-                        <input type="text" className="form-input" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} />
+                        <label htmlFor="category">Category:</label>
+                        <input id="category" type="text" className="form-input" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} />
 
-                        <label>Manufacturer:</label>
-                        <input type="text" className="form-input" value={formData.manufacturer} onChange={e => setFormData({ ...formData, manufacturer: e.target.value })} />
+                        <label htmlFor="manufacturer">Manufacturer:</label>
+                        <input id="manufacturer" type="text" className="form-input" value={formData.manufacturer} onChange={e => setFormData({ ...formData, manufacturer: e.target.value })} />
 
-                        <label>Year of Publication:</label>
-                        <input type="number" className="form-input" value={formData.year} onChange={e => setFormData({ ...formData, year: e.target.value })} />
+                        <label htmlFor="year">Year of Publication:</label>
+                        <input id="year" type="number" className="form-input" value={formData.year} onChange={e => setFormData({ ...formData, year: e.target.value })} />
 
-                        <label>Condition:</label>
+                        <label htmlFor="condition">Condition:</label>
                         <select
                             className="form-input"
+                            id="condition"
                             value={formData.condition}
                             onChange={e => setFormData({ ...formData, condition: e.target.value })}
                         >
@@ -136,6 +139,7 @@ export function AddCDForm({ onSave, cds }) {
                             <div key={index} className="list-item-input">
                                 <span>{index + 1}. </span>
                                 <input
+                                    aria-label={`Song ${index + 1}`}
                                     type="text"
                                     className="form-input"
                                     value={song}
@@ -150,13 +154,14 @@ export function AddCDForm({ onSave, cds }) {
                                 </button>
                             </div>
                         ))}
-                        <button type="button" onClick={addSongField} className="small-btn">+</button>
+                        <button type="button" aria-label="Add Song" onClick={addSongField} className="small-btn">+</button>
 
                         <label style={{ marginTop: '20px' }}>Photos:</label>
                         <div className="photo-upload-section">
                             <input
                                 type="file"
                                 id="photo-input"
+                                data-testid="photo-input"
                                 multiple
                                 accept="image/*"
                                 onChange={handlePhotoUpload}
@@ -185,13 +190,13 @@ export function AddCDForm({ onSave, cds }) {
                                 ))}
                             </div>
                         </div>
-                        <button type="button" className="small-btn" onClick={() => document.getElementById('photo-input').click()}>+</button>
+                        <button type="button" aria-label="Add Photo" className="small-btn" onClick={() => document.getElementById('photo-input').click()}>+</button>
                     </div>
                 </div>
 
                 <div className="full-width">
-                    <label>Description:</label>
-                    <textarea className="form-input" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                    <label htmlFor="description">Description:</label>
+                    <textarea id="description" className="form-input" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
                 </div>
 
                 <div className="form-actions">

@@ -1,3 +1,30 @@
+@keyframes skyFall {
+    0% {
+        opacity: 0;
+        transform: translateY(-200px) rotateX(-20deg);
+    }
+
+    60% {
+        opacity: 1;
+        transform: translateY(10px); 
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) rotateX(0);
+    }
+}
+
+.table-cell-animate {
+    opacity: 0;
+    animation: skyFall 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.table-row-hover:hover {
+    background-color: rgba(142, 46, 122, 0.05);
+    cursor: pointer;
+}
+
 #main-page {
     width: 90vw;
     max-width: 1000px;

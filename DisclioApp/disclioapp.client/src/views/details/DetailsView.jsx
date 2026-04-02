@@ -45,7 +45,6 @@ export function DetailsView({ cds }) {
                                     onClick={() => setActivePhotoIdx(i)}
                                     alt="thumbnail" />
                             ))}
-                            <button className="thumb-add-btn">+</button>
                         </div>
                     </div>
                 </div>
