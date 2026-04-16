@@ -21,9 +21,8 @@ export default defineConfig({
         dedupe: ['react', 'react-dom']
     },
     server: {
-        // We removed the proxy and the https certificate requirements
         port: 5173,
-        strictPort: true,
+        strictPort: true
     },
     optimizeDeps: {
         include: ['recharts'],

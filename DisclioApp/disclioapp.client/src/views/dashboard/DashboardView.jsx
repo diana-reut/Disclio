@@ -18,7 +18,9 @@ const generateRandomCD = () => {
         condition: "Near Mint",
         rating: Math.floor(Math.random() * 5) + 1,
         description: "Automatically generated CD for collection testing.",
-        songs: ["Track 1", "Track 2", "Track 3"]
+        songs: ["Track 1", "Track 2", "Track 3"],
+        photos: ["/pompom.jpg"],
+        cover: "/pompom.jpg"
     };
 };
 
