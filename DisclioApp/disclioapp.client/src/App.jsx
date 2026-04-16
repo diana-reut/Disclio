@@ -44,16 +44,6 @@ function App() {
     };
     const deleteCD = (index) => setCds(cds.filter((_, i) => i !== index));
 
-    const handleSave = (newCD, index) => {
-        if (index !== null) {
-            const updated = [...cds];
-            updated[index] = newCD;
-            setCds(updated);
-        } else {
-            setCds([...cds, newCD]);
-        }
-    };
-
     return (
         <div className="container">
             <Routes>
@@ -111,7 +101,7 @@ function App() {
                             deleteCD={deleteCD}
                             currentPage={currentPage}
                             setCurrentPage={setCurrentPage}
-                            onSave={handleSave}
+                            onSave={handleSaveCD}
                         />
                     </ProtectedRoute>
                 } />
