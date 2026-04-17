@@ -49,7 +49,7 @@ export function AddCDForm({ onSave, cds }) {
         setPhotos(photos.filter((_, index) => index !== indexToRemove));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         const titleError = !formData.title;
@@ -57,16 +57,42 @@ export function AddCDForm({ onSave, cds }) {
 
         if (titleError || artistError) {
             setErrors({ title: titleError, artist: artistError });
-
-            setTimeout(() => {
-                setErrors({ title: false, artist: false });
-            }, 500);
-
+            setTimeout(() => setErrors({ title: false, artist: false }), 500);
             return;
         }
-        const cover = photos.length > 0 ? photos[0] : null;
-        onSave({ ...formData, songs, photos, cover }, isEditMode ? Number(id) : null);
-        navigate(-1);
+
+        const cover = photos.length > 0 ? photos : null;
+        const cdPayload = { ...formData, songs, photos, cover };
+
+        const url = isEditMode
+            ? `http://localhost:8080/api/cds/${id}`
+            : 'http://localhost:8080/api/cds';
+
+        const method = isEditMode ? 'PUT' : 'POST';
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(cdPayload),
+            });
+
+            if (response.ok) {
+                alert(isEditMode ? "Updated in RAM!" : "Saved to RAM!");
+
+                onSave(cdPayload, isEditMode ? Number(id) : null);
+
+                navigate(-1);
+            } else {
+                const errorMsg = await response.text();
+                alert("Server Error: " + errorMsg);
+            }
+        } catch (error) {
+            console.error("Failed to connect to IntelliJ:", error);
+            alert("Connection failed. Is the backend running?");
+        }
     };
 
     return (
