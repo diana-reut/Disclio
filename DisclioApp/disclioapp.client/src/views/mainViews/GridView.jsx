@@ -6,34 +6,36 @@ export function GridView({
     cds,
     deleteCD,
     currentPage,
-    setCurrentPage
+    goToPage,
+    nextPage,
+    prevPage,
+    totalPages
 }) {
     const navigate = useNavigate();
-
-    const itemsPerPage = 9;
-
-    const indexOfLast = currentPage * itemsPerPage;
-    const indexOfFirst = indexOfLast - itemsPerPage;
-
-    const currentItems = cds.slice(indexOfFirst, indexOfLast);
 
     return (
         <div className="grid-view-container">
 
             <div className="table-actions-header" style={{ margin: '20px' }}>
 
-                <button className="small-btn" onClick={() => navigate('/add')}>
+                <button
+                    className="small-btn"
+                    onClick={() => navigate('/add')}
+                >
                     + Add Album
                 </button>
 
-                <button className="small-btn" onClick={() => navigate('/stats')}>
+                <button
+                    className="small-btn"
+                    onClick={() => navigate('/stats')}
+                >
                     See Stats
                 </button>
 
                 <button
                     className="small-btn"
                     onClick={() => {
-                        setCurrentPage(1);
+                        goToPage(1);
                         navigate('/master-view');
                     }}
                 >
@@ -44,8 +46,8 @@ export function GridView({
 
             <div className="album-grid">
 
-                {currentItems.length > 0 ? (
-                    currentItems.map((cd) => (
+                {cds.length > 0 ? (
+                    cds.map((cd, index) => (
                         <div
                             key={cd.id}
                             className="grid-item"
@@ -100,19 +102,19 @@ export function GridView({
                 <button
                     className="page-btn"
                     disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(p => p - 1)}
+                    onClick={prevPage}
                 >
                     Prev
                 </button>
 
                 <span className="pg-text">
-                    Page {currentPage}
+                    Page {currentPage} {totalPages ? `/ ${totalPages}` : ''}
                 </span>
 
                 <button
                     className="page-btn"
-                    disabled={indexOfLast >= cds.length}
-                    onClick={() => setCurrentPage(p => p + 1)}
+                    disabled={currentPage === totalPages}
+                    onClick={nextPage}
                 >
                     Next
                 </button>

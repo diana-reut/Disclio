@@ -6,34 +6,36 @@ export function MasterView({
     cds,
     deleteCD,
     currentPage,
-    setCurrentPage
+    goToPage,
+    nextPage,
+    prevPage,
+    totalPages
 }) {
     const navigate = useNavigate();
-
-    const itemsPerPage = 5;
-
-    const indexOfLast = currentPage * itemsPerPage;
-    const indexOfFirst = indexOfLast - itemsPerPage;
-
-    const currentItems = cds.slice(indexOfFirst, indexOfLast);
 
     return (
         <div id="main-page">
             <div className="table-container">
 
                 <div className="table-actions-header">
-                    <button className="small-btn" onClick={() => navigate('/add')}>
+                    <button
+                        className="small-btn"
+                        onClick={() => navigate('/add')}
+                    >
                         + Add Album
                     </button>
 
-                    <button className="small-btn" onClick={() => navigate('/stats')}>
+                    <button
+                        className="small-btn"
+                        onClick={() => navigate('/stats')}
+                    >
                         Stats
                     </button>
 
                     <button
                         className="small-btn"
                         onClick={() => {
-                            setCurrentPage(1);
+                            goToPage(1);
                             navigate('/grid-view');
                         }}
                     >
@@ -53,16 +55,14 @@ export function MasterView({
                     </thead>
 
                     <tbody>
-                        {currentItems.length > 0 ? (
-                            currentItems.map((cd, index) => (
+                        {cds.length > 0 ? (
+                            cds.map((cd, index) => (
                                 <tr
                                     key={cd.id}
                                     onClick={() => navigate(`/details/${cd.id}`)}
                                     className="table-row-hover"
                                 >
-                                    <td>
-                                        {indexOfFirst + index + 1}
-                                    </td>
+                                    <td>{index + 1 + (currentPage - 1) * 5}</td>
 
                                     <td>
                                         <img
@@ -77,7 +77,6 @@ export function MasterView({
 
                                     <td>
                                         <div style={{ display: 'flex', gap: '5px' }}>
-
                                             <button
                                                 className="small-btn"
                                                 onClick={(e) => {
@@ -97,7 +96,6 @@ export function MasterView({
                                             >
                                                 🗑️
                                             </button>
-
                                         </div>
                                     </td>
                                 </tr>
@@ -117,17 +115,19 @@ export function MasterView({
                 <button
                     className="page-btn"
                     disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(p => p - 1)}
+                    onClick={prevPage}
                 >
                     Prev
                 </button>
 
-                <span>{currentPage}</span>
+                <span>
+                    Page {currentPage} {totalPages ? `/ ${totalPages}` : ''}
+                </span>
 
                 <button
                     className="page-btn"
-                    disabled={indexOfLast >= cds.length}
-                    onClick={() => setCurrentPage(p => p + 1)}
+                    disabled={currentPage === totalPages}
+                    onClick={nextPage}
                 >
                     Next
                 </button>

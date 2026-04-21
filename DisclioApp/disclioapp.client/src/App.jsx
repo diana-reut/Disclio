@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import './App.css'
+import './App.css';
+
 import { AddCDForm } from './forms/AddCDForm';
 import { DetailsView } from './views/details/DetailsView';
 import { MasterView } from './views/mainViews/MasterView';
@@ -9,8 +9,9 @@ import { SongListView } from './views/details/SongListView';
 import { StatisticsView } from './views/statistics/StatisticsView';
 import { DashboardView } from './views/dashboard/DashboardView';
 import { LandingPage } from './presentation/LandingPage';
-import { AuthView } from './authentication/AuthView'
+import { AuthView } from './authentication/AuthView';
 
+import { useCDPagination } from './hooks/useCDPagination';
 
 const getCookie = (name) => {
     const value = `; ${document.cookie}`;
@@ -30,22 +31,15 @@ function ProtectedRoute({ children }) {
 }
 
 function App() {
-    const [cds, setCds] = useState([]);
-    const [currentPage, setCurrentPage] = useState(1);
-
-    const fetchCDs = async () => {
-        try {
-            const res = await fetch('http://localhost:8080/api/cds');
-            const data = await res.json();
-            setCds(data);
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    useEffect(() => {
-        fetchCDs();
-    }, []);
+    const {
+        cds,
+        currentPage,
+        goToPage,
+        nextPage,
+        prevPage,
+        totalPages,
+        refresh
+    } = useCDPagination(5);
 
     const deleteCD = async (id) => {
         try {
@@ -54,7 +48,7 @@ function App() {
             });
 
             if (response.ok) {
-                await fetchCDs();
+                refresh();
             }
         } catch (error) {
             console.error("Network error while deleting:", error);
@@ -71,19 +65,32 @@ function App() {
 
             const response = await fetch(url, {
                 method,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(cd),
             });
 
             if (response.ok) {
-                await fetchCDs();
-            } else {
-                console.error("Save failed");
+                refresh();
             }
         } catch (err) {
             console.error("Network error:", err);
+        }
+    };
+
+    const fetchRatingStats = async () => {
+        try {
+            const res = await fetch(
+                "http://localhost:8080/api/cds/stats/ratings"
+            );
+
+            if (!res.ok) {
+                throw new Error("Failed to fetch rating stats");
+            }
+
+            return await res.json(); // {1: x, 2: y, ...}
+        } catch (err) {
+            console.error("Rating stats error:", err);
+            return {};
         }
     };
 
@@ -92,26 +99,35 @@ function App() {
             <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/auth" element={<AuthView />} />
+
                 <Route path="/master-view" element={
                     <ProtectedRoute>
                         <MasterView
                             cds={cds}
                             deleteCD={deleteCD}
                             currentPage={currentPage}
-                            setCurrentPage={setCurrentPage}
+                            goToPage={goToPage}
+                            nextPage={nextPage}
+                            prevPage={prevPage}
+                            totalPages={totalPages}
                         />
-                     </ProtectedRoute>
+                    </ProtectedRoute>
                 } />
+
                 <Route path="/grid-view" element={
                     <ProtectedRoute>
                         <GridView
                             cds={cds}
                             deleteCD={deleteCD}
                             currentPage={currentPage}
-                            setCurrentPage={setCurrentPage}
+                            goToPage={goToPage}
+                            nextPage={nextPage}
+                            prevPage={prevPage}
+                            totalPages={totalPages}
                         />
-                     </ProtectedRoute>
+                    </ProtectedRoute>
                 } />
+
                 <Route path="/add" element={
                     <ProtectedRoute>
                         <AddCDForm saveCD={saveCD} />
@@ -123,21 +139,25 @@ function App() {
                         <AddCDForm saveCD={saveCD} />
                     </ProtectedRoute>
                 } />
+
                 <Route path="/details/:id" element={
                     <ProtectedRoute>
-                        <DetailsView/>
+                        <DetailsView />
                     </ProtectedRoute>
                 } />
+
                 <Route path="/details/:id/songs" element={
                     <ProtectedRoute>
-                        <SongListView/>
+                        <SongListView />
                     </ProtectedRoute>
                 } />
+
                 <Route path="/stats" element={
                     <ProtectedRoute>
-                        <StatisticsView cds={cds} />
+                        <StatisticsView fetchRatingStats={fetchRatingStats} />
                     </ProtectedRoute>
                 } />
+
                 <Route path="/dashboard" element={
                     <ProtectedRoute>
                         <DashboardView
@@ -145,7 +165,11 @@ function App() {
                             saveCD={saveCD}
                             deleteCD={deleteCD}
                             currentPage={currentPage}
-                            setCurrentPage={setCurrentPage}
+                            goToPage={goToPage}
+                            nextPage={nextPage}
+                            prevPage={prevPage}
+                            totalPages={totalPages}
+                            fetchRatingStats={fetchRatingStats}
                         />
                     </ProtectedRoute>
                 } />

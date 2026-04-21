@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     BarChart, Bar, XAxis, YAxis,
@@ -7,12 +7,23 @@ import {
 } from 'recharts';
 import './StatisticsView.css';
 
-export function StatisticsView({ cds = [] }) {
+export function StatisticsView({ fetchRatingStats }) {
     const navigate = useNavigate();
+
+    const [ratings, setRatings] = useState({});
+
+    useEffect(() => {
+        const loadStats = async () => {
+            const data = await fetchRatingStats();
+            setRatings(data);
+        };
+
+        loadStats();
+    }, [fetchRatingStats]);
 
     const data = [1, 2, 3, 4, 5].map(starLevel => ({
         rating: `${starLevel} ⭐`,
-        count: cds.filter(cd => Number(cd.rating) === starLevel).length
+        count: ratings[starLevel] || 0
     }));
 
     const colors = ['#2e2b5f', '#8e2e7a', '#327d8a', '#6a2c4a', '#7a2e8e'];

@@ -30,7 +30,11 @@ export function DashboardView({
     saveCD,
     deleteCD,
     currentPage,
-    setCurrentPage
+    goToPage,
+    nextPage,
+    prevPage,
+    totalPages,
+    fetchRatingStats
 }) {
 
     const [isAutoAdding, setIsAutoAdding] = useState(false);
@@ -43,7 +47,7 @@ export function DashboardView({
     useEffect(() => {
         if (isAutoAdding) {
             intervalRef.current = setInterval(() => {
-                saveCD(generateRandomCD()); // 🔥 CLEAN: uses App.jsx
+                saveCD(generateRandomCD());
             }, 1000);
         } else {
             clearInterval(intervalRef.current);
@@ -71,7 +75,7 @@ export function DashboardView({
                     {/* STATS */}
                     <aside className="stats-column">
                         <div className="dashboard-section stats-card sticky-stats">
-                            <StatisticsView cds={cds} />
+                            <StatisticsView fetchRatingStats={fetchRatingStats} />
                         </div>
                     </aside>
 
@@ -83,7 +87,10 @@ export function DashboardView({
                                 cds={cds}
                                 deleteCD={deleteCD}
                                 currentPage={currentPage}
-                                setCurrentPage={setCurrentPage}
+                                goToPage={goToPage}
+                                nextPage={nextPage}
+                                prevPage={prevPage}
+                                totalPages={totalPages}
                             />
 
                         </section>
