@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { initialCDs } from './models/CDs';
 import './App.css'
 import { AddCDForm } from './forms/AddCDForm';
 import { DetailsView } from './views/details/DetailsView';
@@ -19,6 +18,7 @@ const getCookie = (name) => {
     if (parts.length === 2) return parts.pop().split(';').shift();
     return null;
 };
+
 function ProtectedRoute({ children }) {
     const isLoggedIn = getCookie('isLoggedIn');
 
@@ -32,51 +32,58 @@ function ProtectedRoute({ children }) {
 function App() {
     const [cds, setCds] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const hasInitialized = useRef(false);
 
-    useEffect(() => {
-        const syncAndLoadData = async () => {
-            if (hasInitialized.current) return;
-            hasInitialized.current = true;
-
-            try {
-                const response = await fetch('http://localhost:8080/api/cds');
-                const dataFromJava = await response.json();
-
-                setCds(dataFromJava);
-                console.log("Data loaded from Spring Boot RAM");
-            } catch (error) {
-                console.error("Failed to fetch from backend:", error);
-            }
-        };
-
-        syncAndLoadData();
-    }, []);
-
-    const handleSaveCD = (newCd, id) => {
-        if (id !== null && id !== undefined) {
-            const updatedCds = [...cds];
-            updatedCds[id] = newCd;
-            setCds(updatedCds);
-        } else {
-            setCds([...cds, newCd]);
+    const fetchCDs = async () => {
+        try {
+            const res = await fetch('http://localhost:8080/api/cds');
+            const data = await res.json();
+            setCds(data);
+        } catch (err) {
+            console.error(err);
         }
     };
 
-    const deleteCD = async (index) => {
+    useEffect(() => {
+        fetchCDs();
+    }, []);
+
+    const deleteCD = async (id) => {
         try {
-            const response = await fetch(`http://localhost:8080/api/cds/${index}`, {
+            const response = await fetch(`http://localhost:8080/api/cds/${id}`, {
                 method: 'DELETE',
             });
 
             if (response.ok) {
-                setCds(prevCds => prevCds.filter((_, i) => i !== index));
-                console.log(`Deleted index ${index} from RAM`);
-            } else {
-                alert("Failed to delete from server.");
+                await fetchCDs();
             }
         } catch (error) {
             console.error("Network error while deleting:", error);
+        }
+    };
+
+    const saveCD = async (cd, id) => {
+        try {
+            const url = id
+                ? `http://localhost:8080/api/cds/${id}`
+                : 'http://localhost:8080/api/cds';
+
+            const method = id ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(cd),
+            });
+
+            if (response.ok) {
+                await fetchCDs();
+            } else {
+                console.error("Save failed");
+            }
+        } catch (err) {
+            console.error("Network error:", err);
         }
     };
 
@@ -88,41 +95,42 @@ function App() {
                 <Route path="/master-view" element={
                     <ProtectedRoute>
                         <MasterView
+                            cds={cds}
                             deleteCD={deleteCD}
                             currentPage={currentPage}
                             setCurrentPage={setCurrentPage}
-                            cds={cds}
-                            />
+                        />
                      </ProtectedRoute>
                 } />
                 <Route path="/grid-view" element={
                     <ProtectedRoute>
                         <GridView
+                            cds={cds}
                             deleteCD={deleteCD}
                             currentPage={currentPage}
                             setCurrentPage={setCurrentPage}
-                            cds={cds}
-                            />
+                        />
                      </ProtectedRoute>
                 } />
                 <Route path="/add" element={
                     <ProtectedRoute>
-                        <AddCDForm onSave={handleSaveCD} />
+                        <AddCDForm saveCD={saveCD} />
                     </ProtectedRoute>
                 } />
+
                 <Route path="/edit/:id" element={
                     <ProtectedRoute>
-                        <AddCDForm onSave={handleSaveCD} cds={cds} />
+                        <AddCDForm saveCD={saveCD} />
                     </ProtectedRoute>
                 } />
                 <Route path="/details/:id" element={
                     <ProtectedRoute>
-                        <DetailsView cds={cds} />
+                        <DetailsView/>
                     </ProtectedRoute>
                 } />
                 <Route path="/details/:id/songs" element={
                     <ProtectedRoute>
-                        <SongListView cds={cds} />
+                        <SongListView/>
                     </ProtectedRoute>
                 } />
                 <Route path="/stats" element={
@@ -134,10 +142,10 @@ function App() {
                     <ProtectedRoute>
                         <DashboardView
                             cds={cds}
+                            saveCD={saveCD}
                             deleteCD={deleteCD}
                             currentPage={currentPage}
                             setCurrentPage={setCurrentPage}
-                            onSave={handleSaveCD}
                         />
                     </ProtectedRoute>
                 } />

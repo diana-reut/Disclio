@@ -3,6 +3,7 @@ package com.example.DisclioApp.Server.model;
 import java.util.List;
 
 public class CD {
+    private int id;
     private String title;
     private String artist;
     private String category;
@@ -13,6 +14,19 @@ public class CD {
     private String description;
     private List<String> songs;
     private List<String> photos;
+
+    public void updateCD(CD newCD){
+        this.title = newCD.title;
+        this.artist = newCD.artist;
+        this.category = newCD.category;
+        this.manufacturer = newCD.manufacturer;
+        this.year = newCD.year;
+        this.condition = newCD.condition;
+        this.rating = newCD.rating;
+        this.description = newCD.description;
+        this.songs = newCD.songs;
+        this.photos = newCD.photos;
+    }
 
     public String getTitle() {
         return title;
@@ -97,7 +111,8 @@ public class CD {
     @Override
     public String toString() {
         return "CD{" +
-                "title='" + title + '\'' +
+                "id=" + id +
+                ", title='" + title + '\'' +
                 ", artist='" + artist + '\'' +
                 ", category='" + category + '\'' +
                 ", manufacturer='" + manufacturer + '\'' +
@@ -108,5 +123,13 @@ public class CD {
                 ", songs=" + songs +
                 ", photos=" + photos +
                 '}';
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 }

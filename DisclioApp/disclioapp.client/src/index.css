@@ -1,5 +1,5 @@
 body {
-    background-image: url("background_image.jpg");
+    background-image: url("background_image.jpg?v=0");
     background-repeat: no-repeat;
     background-origin: padding-box;
     background-size: cover;
