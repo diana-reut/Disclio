@@ -23,8 +23,8 @@ export function GridView({
                 loadMore();
             }
         }, {
-            root: scrollContainerRef.current,
-            rootMargin: '100px',
+            root: null,
+            rootMargin: '200px',
             threshold: 0
         });
 
@@ -34,14 +34,14 @@ export function GridView({
     return (
         <div className="grid-view-container" ref={scrollContainerRef}>
 
-            <div className="table-actions-header" style={{ margin: '20px' }}>
-                <button
-                    className="small-btn"
-                    onClick={() => navigate('/add')}
-                >
-                    + Add Album
-                </button>
+            <button
+                className="floating-add-btn"
+                onClick={() => navigate('/add')}
+            >
+                + Add Album
+            </button>
 
+            <div className="table-actions-header" style={{ margin: '20px' }}>
                 <button
                     className="small-btn"
                     onClick={() => navigate('/stats')}

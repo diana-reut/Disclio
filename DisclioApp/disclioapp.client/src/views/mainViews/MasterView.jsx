@@ -33,9 +33,12 @@ export function MasterView({
 
     return (
         <div id="main-page" ref={scrollContainerRef}>
+            <button className="floating-add-btn" onClick={() => navigate('/add')}>
+                + Add Album
+            </button>
+
             <div className="table-container">
                 <div className="table-actions-header">
-                    <button className="small-btn" onClick={() => navigate('/add')}>+ Add Album</button>
                     <button className="small-btn" onClick={() => navigate('/stats')}>Stats</button>
                     <button className="small-btn" onClick={() => navigate('/grid-view')}>Grid View</button>
                 </div>

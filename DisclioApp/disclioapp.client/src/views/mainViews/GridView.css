@@ -1,9 +1,19 @@
 .grid-view-container {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    min-height: 100vh; 
     box-sizing: border-box;
-    overflow-y: auto;
+    width: 90vw;
+    max-width: 1000px;
+    margin: 5vh auto;
+}
+
+.album-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    padding: 0 20px;
+    flex-grow: 1;
 }
 
 .table-actions-header {
@@ -12,16 +22,7 @@
     align-items: center;
     padding: 10px 20px;
     flex-shrink: 0;
-}
-
-.album-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    gap: 20px; 
-    padding: 0 20px;
-    flex-grow: 1;
-    min-height: 0; 
+    margin-bottom: 20px;
 }
 
 .pagination {
@@ -100,6 +101,42 @@
         justify-content: flex-end;
         padding-top: 5px;
     }
+
+
+.floating-add-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 1000;
+    background: #8e2e7a;
+    color: white;
+    border: none;
+    padding: 15px 25px;
+    border-radius: 50px;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s, background 0.2s;
+}
+
+    .floating-add-btn:hover {
+        background: #a33b8c;
+        transform: scale(1.05);
+    }
+
+    .floating-add-btn:active {
+        transform: scale(0.95);
+    }
+
+@media (max-width: 600px) {
+    .floating-add-btn {
+        bottom: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        font-size: 0.8rem;
+    }
+}
 
 @media (max-width: 600px) {
     .grid-view-container {

@@ -93,6 +93,43 @@ th, td {
     margin-top: 20px;
 }
 
+.floating-add-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 1000;
+    background: #8e2e7a;
+    color: white;
+    border: none;
+    padding: 15px 25px;
+    border-radius: 50px;
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s, background 0.2s;
+}
+
+    .floating-add-btn:hover {
+        background: #a33b8c;
+        transform: scale(1.05);
+    }
+
+    .floating-add-btn:active {
+        transform: scale(0.95);
+    }
+
+
+@media (max-width: 600px) {
+    .floating-add-btn {
+        bottom: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        font-size: 0.8rem;
+    }
+}
+
+
 @media (max-width: 600px) {
     #main-page {
         width: 95vw;
