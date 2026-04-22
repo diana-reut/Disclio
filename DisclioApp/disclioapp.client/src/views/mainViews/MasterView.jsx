@@ -1,46 +1,43 @@
-import React from 'react';
+import React, { useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './MasterView.css';
 
 export function MasterView({
     cds,
     deleteCD,
-    currentPage,
-    goToPage,
-    nextPage,
-    prevPage,
-    totalPages
+    loadMore,
+    hasMore,
+    loading
 }) {
     const navigate = useNavigate();
+    const observer = useRef();
+    const scrollContainerRef = useRef(null);
+
+    const lastElementRef = useCallback(node => {
+        if (loading) return;
+
+        if (observer.current) observer.current.disconnect();
+
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasMore) {
+                loadMore();
+            }
+        }, {
+            root: scrollContainerRef.current,
+            rootMargin: '100px',              
+            threshold: 0
+        });
+
+        if (node) observer.current.observe(node);
+    }, [loading, hasMore, loadMore]);
 
     return (
-        <div id="main-page">
+        <div id="main-page" ref={scrollContainerRef}>
             <div className="table-container">
-
                 <div className="table-actions-header">
-                    <button
-                        className="small-btn"
-                        onClick={() => navigate('/add')}
-                    >
-                        + Add Album
-                    </button>
-
-                    <button
-                        className="small-btn"
-                        onClick={() => navigate('/stats')}
-                    >
-                        Stats
-                    </button>
-
-                    <button
-                        className="small-btn"
-                        onClick={() => {
-                            goToPage(1);
-                            navigate('/grid-view');
-                        }}
-                    >
-                        Grid View
-                    </button>
+                    <button className="small-btn" onClick={() => navigate('/add')}>+ Add Album</button>
+                    <button className="small-btn" onClick={() => navigate('/stats')}>Stats</button>
+                    <button className="small-btn" onClick={() => navigate('/grid-view')}>Grid View</button>
                 </div>
 
                 <table>
@@ -62,19 +59,12 @@ export function MasterView({
                                     onClick={() => navigate(`/details/${cd.id}`)}
                                     className="table-row-hover"
                                 >
-                                    <td>{index + 1 + (currentPage - 1) * 5}</td>
-
+                                    <td>{index + 1}</td>
                                     <td>
-                                        <img
-                                            className="cover-image-small"
-                                            src={cd.cover}
-                                            alt={cd.title}
-                                        />
+                                        <img className="cover-image-small" src={cd.cover} alt={cd.title} />
                                     </td>
-
                                     <td>{cd.title}</td>
                                     <td>{cd.artist}</td>
-
                                     <td>
                                         <div style={{ display: 'flex', gap: '5px' }}>
                                             <button
@@ -86,7 +76,6 @@ export function MasterView({
                                             >
                                                 Edit
                                             </button>
-
                                             <button
                                                 className="small-btn"
                                                 onClick={(e) => {
@@ -111,26 +100,9 @@ export function MasterView({
                 </table>
             </div>
 
-            <div className="pagination">
-                <button
-                    className="page-btn"
-                    disabled={currentPage === 1}
-                    onClick={prevPage}
-                >
-                    Prev
-                </button>
-
-                <span>
-                    Page {currentPage} {totalPages ? `/ ${totalPages}` : ''}
-                </span>
-
-                <button
-                    className="page-btn"
-                    disabled={currentPage === totalPages}
-                    onClick={nextPage}
-                >
-                    Next
-                </button>
+            <div ref={lastElementRef} style={{ height: '40px', margin: '20px 0', textAlign: 'center' }}>
+                {loading && <p style={{ color: '#666' }}>Loading more albums...</p>}
+                {!hasMore && cds.length > 0 && <p style={{ color: '#666' }}>You've reached the end of the collection.</p>}
             </div>
         </div>
     );

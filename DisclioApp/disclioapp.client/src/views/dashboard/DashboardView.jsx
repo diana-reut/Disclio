@@ -31,11 +31,9 @@ export function DashboardView({
     cds,
     saveCD,
     deleteCD,
-    currentPage,
-    goToPage,
-    nextPage,
-    prevPage,
-    totalPages,
+    loadMore,     
+    hasMore,      
+    loading,     
     fetchRatingStats
 }) {
 
@@ -60,7 +58,6 @@ export function DashboardView({
 
     return (
         <div className="dashboard-outer-wrapper">
-
             <div className="dashboard-container">
 
                 <header className="dashboard-header">
@@ -88,11 +85,9 @@ export function DashboardView({
                             <GridView
                                 cds={cds}
                                 deleteCD={deleteCD}
-                                currentPage={currentPage}
-                                goToPage={goToPage}
-                                nextPage={nextPage}
-                                prevPage={prevPage}
-                                totalPages={totalPages}
+                                loadMore={loadMore}     
+                                hasMore={hasMore}      
+                                loading={loading}       
                             />
 
                         </section>

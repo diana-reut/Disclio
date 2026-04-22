@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 export function useCDPagination(pageSize = 5) {
     const [cds, setCds] = useState([]);
@@ -6,9 +6,9 @@ export function useCDPagination(pageSize = 5) {
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(false);
 
-    const fetchCDs = useCallback(async (page = 1) => {
-        setLoading(true);
+    const prefetchCache = useRef(null);
 
+    const fetchPageFromServer = useCallback(async (page) => {
         const query = `
             query GetPagedCDs($page: Int!, $size: Int!) {
                 pagedCds(page: $page, size: $size) {
@@ -28,63 +28,100 @@ export function useCDPagination(pageSize = 5) {
             }
         `;
 
+        const res = await fetch("http://localhost:8080/graphql", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                query,
+                variables: {
+                    page: page - 1,
+                    size: pageSize
+                }
+            })
+        });
+
+        const json = await res.json();
+
+        if (json.errors) {
+            console.error("GraphQL Errors:", json.errors);
+            throw new Error("Failed to fetch CDs via GraphQL");
+        }
+
+        return {
+            items: json.data.pagedCds,
+            total: json.data.totalCount
+        };
+    }, [pageSize]);
+
+    const loadInitialData = useCallback(async () => {
+        setLoading(true);
         try {
-            const res = await fetch("http://localhost:8080/graphql", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    query,
-                    variables: {
-                        page: page - 1, 
-                        size: pageSize
-                    }
-                })
-            });
+            const initialData = await fetchPageFromServer(1);
+            setCds(initialData.items);
+            setTotalCount(initialData.total);
+            setCurrentPage(1);
 
-            const json = await res.json();
+            const calculatedTotalPages = Math.ceil(initialData.total / pageSize);
 
-            // GraphQL returns 200 OK even if there are query errors, so we check for them in this way
-            if (json.errors) {
-                console.error("GraphQL Errors:", json.errors);
-                throw new Error("Failed to fetch CDs via GraphQL");
+            if (calculatedTotalPages > 1) {
+                prefetchCache.current = await fetchPageFromServer(2);
             }
-
-            const fetchedCds = json.data.pagedCds;
-            const total = json.data.totalCount;
-
-            setCds(fetchedCds);
-            setTotalCount(total);
-            setCurrentPage(page);
         } catch (err) {
-            console.error("Failed to fetch CDs:", err);
+            console.error("Failed to load initial CDs:", err);
         } finally {
             setLoading(false);
         }
-    }, [pageSize]);
+    }, [fetchPageFromServer, pageSize]);
 
     useEffect(() => {
-        fetchCDs(1);
-    }, [fetchCDs]);
+        loadInitialData();
+    }, [loadInitialData]);
 
     const totalPages = Math.ceil(totalCount / pageSize);
 
-    const goToPage = (page) => {
-        if (page < 1 || page > totalPages) return;
-        fetchCDs(page);
-    };
+    const loadMore = useCallback(async () => {
+        if (loading || currentPage >= totalPages) return;
 
-    const nextPage = () => goToPage(currentPage + 1);
-    const prevPage = () => goToPage(currentPage - 1);
+        setLoading(true);
+        const nextPageNum = currentPage + 1;
+
+        try {
+            let newData;
+            if (prefetchCache.current) {
+                newData = prefetchCache.current;
+                prefetchCache.current = null;
+            } else {
+                newData = await fetchPageFromServer(nextPageNum);
+            }
+
+            setCds(prev => {
+                const existingIds = new Set(prev.map(cd => cd.id));
+                const filtered = newData.items.filter(cd => !existingIds.has(cd.id));
+                return [...prev, ...filtered];
+            });
+            setCurrentPage(nextPageNum);
+
+            if (nextPageNum < totalPages) {
+                prefetchCache.current = await fetchPageFromServer(nextPageNum + 1);
+            }
+        } catch (err) {
+            console.error("Failed to load more CDs:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, [currentPage, totalPages, loading, fetchPageFromServer]);
+
+    const refresh = () => {
+        prefetchCache.current = null;
+        loadInitialData();
+    };
 
     return {
         cds,
-        currentPage,
-        totalPages,
-        totalCount,
         loading,
-        goToPage,
-        nextPage,
-        prevPage,
-        refresh: () => fetchCDs(currentPage),
+        totalCount,
+        hasMore: currentPage < totalPages,
+        loadMore,
+        refresh,
     };
 }

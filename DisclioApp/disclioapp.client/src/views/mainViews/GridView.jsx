@@ -1,23 +1,40 @@
-import React from 'react';
+import React, { useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './GridView.css';
 
 export function GridView({
     cds,
     deleteCD,
-    currentPage,
-    goToPage,
-    nextPage,
-    prevPage,
-    totalPages
+    loadMore,
+    hasMore,
+    loading
 }) {
     const navigate = useNavigate();
+    const observer = useRef();
+    const scrollContainerRef = useRef(null);
+
+    const lastElementRef = useCallback(node => {
+        if (loading) return;
+
+        if (observer.current) observer.current.disconnect();
+
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasMore) {
+                loadMore();
+            }
+        }, {
+            root: scrollContainerRef.current,
+            rootMargin: '100px',
+            threshold: 0
+        });
+
+        if (node) observer.current.observe(node);
+    }, [loading, hasMore, loadMore]);
 
     return (
-        <div className="grid-view-container">
+        <div className="grid-view-container" ref={scrollContainerRef}>
 
             <div className="table-actions-header" style={{ margin: '20px' }}>
-
                 <button
                     className="small-btn"
                     onClick={() => navigate('/add')}
@@ -34,27 +51,21 @@ export function GridView({
 
                 <button
                     className="small-btn"
-                    onClick={() => {
-                        goToPage(1);
-                        navigate('/master-view');
-                    }}
+                    onClick={() => navigate('/master-view')}
                 >
                     Switch to Tabular View
                 </button>
-
             </div>
 
             <div className="album-grid">
-
                 {cds.length > 0 ? (
-                    cds.map((cd, index) => (
+                    cds.map(cd => (
                         <div
                             key={cd.id}
                             className="grid-item"
                             onClick={() => navigate(`/details/${cd.id}`)}
                         >
                             <div className="album-card">
-
                                 <img
                                     src={cd.cover}
                                     className="grid-cover"
@@ -62,7 +73,6 @@ export function GridView({
                                 />
 
                                 <div className="album-info-overlay">
-
                                     <h3 className="grid-title">
                                         {cd.title?.toUpperCase()}
                                     </h3>
@@ -83,42 +93,25 @@ export function GridView({
                                             🗑️
                                         </button>
                                     </footer>
-
                                 </div>
-
                             </div>
                         </div>
                     ))
                 ) : (
-                    <p className="no-albums">
-                        No albums available.
-                    </p>
+                    <p className="no-albums">No albums available.</p>
                 )}
-
             </div>
 
-            <div className="pagination">
-
-                <button
-                    className="page-btn"
-                    disabled={currentPage === 1}
-                    onClick={prevPage}
-                >
-                    Prev
-                </button>
-
-                <span className="pg-text">
-                    Page {currentPage} {totalPages ? `/ ${totalPages}` : ''}
-                </span>
-
-                <button
-                    className="page-btn"
-                    disabled={currentPage === totalPages}
-                    onClick={nextPage}
-                >
-                    Next
-                </button>
-
+            <div
+                ref={lastElementRef}
+                style={{ height: '40px', margin: '20px', textAlign: 'center' }}
+            >
+                {loading && <p style={{ color: '#666' }}>Loading more albums...</p>}
+                {!hasMore && cds.length > 0 && (
+                    <p style={{ color: '#666' }}>
+                        You've reached the end of the collection.
+                    </p>
+                )}
             </div>
 
         </div>

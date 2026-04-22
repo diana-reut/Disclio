@@ -33,13 +33,11 @@ function ProtectedRoute({ children }) {
 function App() {
     const {
         cds,
-        currentPage,
-        goToPage,
-        nextPage,
-        prevPage,
-        totalPages,
+        loadMore,
+        hasMore,
+        loading,
         refresh
-    } = useCDPagination(5);
+    } = useCDPagination(10);
 
     const GRAPHQL_ENDPOINT = 'http://localhost:8080/graphql';
 
@@ -156,11 +154,9 @@ function App() {
                         <MasterView
                             cds={cds}
                             deleteCD={deleteCD}
-                            currentPage={currentPage}
-                            goToPage={goToPage}
-                            nextPage={nextPage}
-                            prevPage={prevPage}
-                            totalPages={totalPages}
+                            loadMore={loadMore}
+                            hasMore={hasMore}
+                            loading={loading}
                         />
                     </ProtectedRoute>
                 } />
@@ -170,11 +166,23 @@ function App() {
                         <GridView
                             cds={cds}
                             deleteCD={deleteCD}
-                            currentPage={currentPage}
-                            goToPage={goToPage}
-                            nextPage={nextPage}
-                            prevPage={prevPage}
-                            totalPages={totalPages}
+                            loadMore={loadMore}
+                            hasMore={hasMore}
+                            loading={loading}
+                        />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                        <DashboardView
+                            cds={cds}
+                            saveCD={saveCD}
+                            deleteCD={deleteCD}
+                            fetchRatingStats={fetchRatingStats}
+                            loadMore={loadMore}
+                            hasMore={hasMore}
+                            loading={loading}
                         />
                     </ProtectedRoute>
                 } />
@@ -206,22 +214,6 @@ function App() {
                 <Route path="/stats" element={
                     <ProtectedRoute>
                         <StatisticsView fetchRatingStats={fetchRatingStats} />
-                    </ProtectedRoute>
-                } />
-
-                <Route path="/dashboard" element={
-                    <ProtectedRoute>
-                        <DashboardView
-                            cds={cds}
-                            saveCD={saveCD}
-                            deleteCD={deleteCD}
-                            currentPage={currentPage}
-                            goToPage={goToPage}
-                            nextPage={nextPage}
-                            prevPage={prevPage}
-                            totalPages={totalPages}
-                            fetchRatingStats={fetchRatingStats}
-                        />
                     </ProtectedRoute>
                 } />
             </Routes>
