@@ -8,12 +8,14 @@ const generateRandomCD = () => {
     const albums = ["The Dark Side of the Moon", "Discovery", "Kind of Blue", "OK Computer", "Abbey Road", "American Idiot", "Future Nostalgia", "Happier Than Ever"];
     const genres = ["Rock", "Electronic", "Jazz", "Alternative", "Pop"];
 
-    const i = Math.floor(Math.random() * artists.length);
+    const randomArtist = artists[Math.floor(Math.random() * artists.length)];
+    const randomAlbum = albums[Math.floor(Math.random() * albums.length)];
+    const randomGenre = genres[Math.floor(Math.random() * genres.length)];
 
     return {
-        title: albums[i],
-        artist: artists[i],
-        category: genres[i],
+        title: randomAlbum,
+        artist: randomArtist,
+        category: randomGenre,
         manufacturer: "Random Records Inc.",
         year: 1970 + Math.floor(Math.random() * 50),
         condition: "Near Mint",

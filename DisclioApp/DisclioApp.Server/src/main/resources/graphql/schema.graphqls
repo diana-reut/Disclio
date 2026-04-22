@@ -1,0 +1,57 @@
+type CD {
+    id: Int
+    title: String
+    artist: String
+    category: String
+    manufacturer: String
+    year: Int
+    condition: String
+    rating: Int
+    description: String
+    songs: [String]
+    photos: [String]
+}
+
+type Query {
+    cds: [CD]
+    cd(id: Int!): CD
+    pagedCds(page: Int!, size: Int!): [CD]
+    ratingStats: [RatingStat]
+    totalCount: Int
+}
+
+type Mutation {
+    addCD(
+        title: String!,
+        artist: String!,
+        category: String,
+        manufacturer: String,
+        year: Int,
+        condition: String,
+        rating: Int,
+        description: String,
+        songs: [String],
+        photos: [String]
+    ): String
+
+    deleteCD(id: Int!): String
+
+    updateCD(
+        id: Int!,
+        title: String!,
+        artist: String!,
+        category: String,
+        manufacturer: String,
+        year: Int,
+        condition: String,
+        rating: Int,
+        description: String,
+        songs: [String],
+        photos: [String]
+    ): CD
+}
+
+type RatingStat {
+    rating: Int
+    count: Int
+}

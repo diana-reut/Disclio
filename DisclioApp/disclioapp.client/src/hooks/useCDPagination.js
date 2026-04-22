@@ -9,16 +9,51 @@ export function useCDPagination(pageSize = 5) {
     const fetchCDs = useCallback(async (page = 1) => {
         setLoading(true);
 
+        const query = `
+            query GetPagedCDs($page: Int!, $size: Int!) {
+                pagedCds(page: $page, size: $size) {
+                    id
+                    title
+                    artist
+                    category
+                    manufacturer
+                    year
+                    condition
+                    rating
+                    description
+                    songs
+                    photos
+                }
+                totalCount
+            }
+        `;
+
         try {
-            const res = await fetch(
-                `http://localhost:8080/api/cds/paged?page=${page - 1}&size=${pageSize}`
-            );
+            const res = await fetch("http://localhost:8080/graphql", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    query,
+                    variables: {
+                        page: page - 1, 
+                        size: pageSize
+                    }
+                })
+            });
 
-            const data = await res.json();
-            const total = res.headers.get("Total-Count");
+            const json = await res.json();
 
-            setCds(data);
-            setTotalCount(Number(total));
+            // GraphQL returns 200 OK even if there are query errors, so we check for them in this way
+            if (json.errors) {
+                console.error("GraphQL Errors:", json.errors);
+                throw new Error("Failed to fetch CDs via GraphQL");
+            }
+
+            const fetchedCds = json.data.pagedCds;
+            const total = json.data.totalCount;
+
+            setCds(fetchedCds);
+            setTotalCount(total);
             setCurrentPage(page);
         } catch (err) {
             console.error("Failed to fetch CDs:", err);

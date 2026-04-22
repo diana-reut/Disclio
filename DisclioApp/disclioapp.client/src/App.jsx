@@ -41,10 +41,22 @@ function App() {
         refresh
     } = useCDPagination(5);
 
+    const GRAPHQL_ENDPOINT = 'http://localhost:8080/graphql';
+
     const deleteCD = async (id) => {
+        const query = `
+            mutation DeleteCD($id: Int!) {
+                deleteCD(id: $id)
+            }
+        `;
         try {
-            const response = await fetch(`http://localhost:8080/api/cds/${id}`, {
-                method: 'DELETE',
+            const response = await fetch(GRAPHQL_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query,
+                    variables: { id: parseInt(id, 10) }
+                }),
             });
 
             if (response.ok) {
@@ -56,38 +68,77 @@ function App() {
     };
 
     const saveCD = async (cd, id) => {
+        const isUpdate = !!id;
+
+        const query = isUpdate ? `
+            mutation UpdateCD($id: Int!, $title: String!, $artist: String!, $category: String, $manufacturer: String, $year: Int, $condition: String, $rating: Int, $description: String, $songs: [String], $photos: [String]) {
+                updateCD(id: $id, title: $title, artist: $artist, category: $category, manufacturer: $manufacturer, year: $year, condition: $condition, rating: $rating, description: $description, songs: $songs, photos: $photos) {
+                    id
+                }
+            }
+        ` : `
+            mutation AddCD($title: String!, $artist: String!, $category: String, $manufacturer: String, $year: Int, $condition: String, $rating: Int, $description: String, $songs: [String], $photos: [String]) {
+                addCD(title: $title, artist: $artist, category: $category, manufacturer: $manufacturer, year: $year, condition: $condition, rating: $rating, description: $description, songs: $songs, photos: $photos)
+            }
+        `;
+
+        const variables = { ...cd };
+
+        if (isUpdate) {
+            variables.id = parseInt(id, 10);
+        }
+
+        variables.year = variables.year ? parseInt(variables.year, 10) : null;
+        variables.rating = variables.rating ? parseInt(variables.rating, 10) : null;
+
         try {
-            const url = id
-                ? `http://localhost:8080/api/cds/${id}`
-                : 'http://localhost:8080/api/cds';
-
-            const method = id ? 'PUT' : 'POST';
-
-            const response = await fetch(url, {
-                method,
+            const response = await fetch(GRAPHQL_ENDPOINT, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(cd),
+                body: JSON.stringify({ query, variables }),
             });
 
-            if (response.ok) {
-                refresh();
+            const json = await response.json();
+
+            if (json.errors) {
+                console.error("GraphQL Mutation Rejected:", json.errors);
+                alert("Failed to save CD. Check the browser console for exact details.");
+                return;
             }
+
+            refresh();
+
         } catch (err) {
             console.error("Network error:", err);
         }
     };
 
     const fetchRatingStats = async () => {
-        try {
-            const res = await fetch(
-                "http://localhost:8080/api/cds/stats/ratings"
-            );
-
-            if (!res.ok) {
-                throw new Error("Failed to fetch rating stats");
+        const query = `
+            query GetRatingStats {
+                ratingStats {
+                    rating
+                    count
+                }
             }
+        `;
+        try {
+            const res = await fetch(GRAPHQL_ENDPOINT, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query })
+            });
 
-            return await res.json(); // {1: x, 2: y, ...}
+            if (!res.ok) throw new Error("Failed to fetch rating stats");
+
+            const json = await res.json();
+
+            const statsMap = {};
+            json.data.ratingStats.forEach(stat => {
+                statsMap[stat.rating] = stat.count;
+            });
+
+            return statsMap;
         } catch (err) {
             console.error("Rating stats error:", err);
             return {};

@@ -18,7 +18,6 @@ public class CDGraphQLController {
         this.cdService = cdService;
     }
 
-    // ----------- QUERIES -----------
 
     @QueryMapping
     public List<CD> cds() {
@@ -50,7 +49,6 @@ public class CDGraphQLController {
                 .collect(Collectors.toList());
     }
 
-    // ----------- MUTATIONS -----------
 
     @MutationMapping
     public String addCD(
