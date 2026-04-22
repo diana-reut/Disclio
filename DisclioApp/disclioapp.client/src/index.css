@@ -1,7 +1,18 @@
 body {
-    background-image: url("background_image.jpg?v=0");
-    background-repeat: no-repeat;
-    background-origin: padding-box;
-    background-size: cover;
-    background-color: black;
+    margin: 0;
+    background-color: transparent;
 }
+
+    body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-image: url("background_image.jpg?v=0");
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+        z-index: -1;
+    }
