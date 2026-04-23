@@ -16,7 +16,7 @@ public class CDRepository {
         cd.setId(id);
         id = id + 1;
         cdStorage.add(cd);
-        System.out.println("added new CD: " + cd.toString());
+        System.out.println("added new CD: " + cd.getTitle());
     }
 
     public List<CD> findAll() {

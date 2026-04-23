@@ -100,6 +100,63 @@
         color: black;
     }
 
+.del-song-btn {
+    background: none;
+    border: none;
+    color: #ff4d4d;
+    cursor: pointer;
+    margin: 0 10px;
+    font-size: 0.8rem;
+    opacity: 0.6;
+    transition: 0.2s;
+}
+
+    .del-song-btn:hover {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+
+.add-song-mini-form {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+    .add-song-mini-form input {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid white;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+    }
+
+    .add-song-mini-form button {
+        background: white;
+        color: purple;
+        border: none;
+        padding: 5px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    
+.song-item {
+    min-height: 30px;
+}
+
+.song-edit-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed purple;
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    width: 200px;
+    padding: 0;
+    outline: none;
+}
 
 @media (max-width: 850px) {
     .song-view-container {

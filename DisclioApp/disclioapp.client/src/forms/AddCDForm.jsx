@@ -27,32 +27,28 @@ export function AddCDForm({ saveCD }) {
 
     useEffect(() => {
         if (isEditMode) {
-            fetch(`http://localhost:8080/api/cds/${id}`)
-                .then(res => {
-    if (!res.ok) throw new Error("CD not found");
-    return res.json();
-})
-    .then(data => {
-        setFormData({
-            title: data.title || '',
-            artist: data.artist || '',
-            category: data.category || '',
-            manufacturer: data.manufacturer || '',
-            year: data.year || '',
-            condition: data.condition || 'Very good',
-            rating: data.rating || 0,
-            description: data.description || ''
-        });
-
-        setSongs(data.songs || []);
-        setPhotos(data.photos || []);
-
-        setLoading(false);
-    })
-    .catch(err => {
-        console.error("Failed to load CD:", err);
-        setLoading(false);
-    });
+            // Using GraphQL instead of REST to be consistent with the app
+            const query = `query GetCD($id: Int!) { 
+                cd(id: $id) { 
+                    title artist category manufacturer year condition rating description photos 
+                    songs { title } 
+                } 
+            }`;
+            fetch(`http://localhost:8080/graphql`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query, variables: { id: parseInt(id) } })
+            })
+                .then(res => res.json())
+                .then(json => {
+                    const data = json.data.cd;
+                    setFormData({ ...data, year: data.year || '' });
+                    // Convert object array back to string array for the form inputs
+                    setSongs(data.songs ? data.songs.map(s => s.title) : []);
+                    setPhotos(data.photos || []);
+                    setLoading(false);
+                })
+                .catch(err => setLoading(false));
         }
     }, [id, isEditMode]);
 

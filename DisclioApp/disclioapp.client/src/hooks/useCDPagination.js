@@ -10,23 +10,28 @@ export function useCDPagination(pageSize = 5) {
 
     const fetchPageFromServer = useCallback(async (page) => {
         const query = `
-            query GetPagedCDs($page: Int!, $size: Int!) {
-                pagedCds(page: $page, size: $size) {
-                    id
-                    title
-                    artist
-                    category
-                    manufacturer
-                    year
-                    condition
-                    rating
-                    description
-                    songs
-                    photos
-                }
-                totalCount
+    query GetPagedCDs($page: Int!, $size: Int!) {
+        pagedCds(page: $page, size: $size) {
+            id
+            title
+            artist
+            category
+            manufacturer
+            year
+            condition
+            rating
+            description
+            photos
+            songs {        
+                id
+                title
+                duration
+                trackNumber
             }
-        `;
+        }
+        totalCount
+    }
+`;
 
         const res = await fetch("http://localhost:8080/graphql", {
             method: "POST",

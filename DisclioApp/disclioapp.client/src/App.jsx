@@ -1,6 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
-
 import { AddCDForm } from './forms/AddCDForm';
 import { DetailsView } from './views/details/DetailsView';
 import { MasterView } from './views/mainViews/MasterView';
@@ -10,7 +9,6 @@ import { StatisticsView } from './views/statistics/StatisticsView';
 import { DashboardView } from './views/dashboard/DashboardView';
 import { LandingPage } from './presentation/LandingPage';
 import { AuthView } from './authentication/AuthView';
-
 import { useCDPagination } from './hooks/useCDPagination';
 
 const getCookie = (name) => {
@@ -22,11 +20,9 @@ const getCookie = (name) => {
 
 function ProtectedRoute({ children }) {
     const isLoggedIn = getCookie('isLoggedIn');
-
     if (!isLoggedIn) {
         return <Navigate to="/auth" replace />;
     }
-
     return children;
 }
 
@@ -56,36 +52,47 @@ function App() {
                     variables: { id: parseInt(id, 10) }
                 }),
             });
-
-            if (response.ok) {
-                refresh();
-            }
+            if (response.ok) refresh();
         } catch (error) {
             console.error("Network error while deleting:", error);
         }
     };
 
-    const saveCD = async (cd, id) => {
+    const saveCD = async (cdData, id) => {
         const isUpdate = !!id;
 
         const query = isUpdate ? `
-            mutation UpdateCD($id: Int!, $title: String!, $artist: String!, $category: String, $manufacturer: String, $year: Int, $condition: String, $rating: Int, $description: String, $songs: [String], $photos: [String]) {
-                updateCD(id: $id, title: $title, artist: $artist, category: $category, manufacturer: $manufacturer, year: $year, condition: $condition, rating: $rating, description: $description, songs: $songs, photos: $photos) {
-                    id
-                }
+        mutation UpdateCD($id: Int!, $title: String!, $artist: String!, $category: String, $manufacturer: String, $year: Int, $condition: String, $rating: Int, $description: String, $photos: [String], $songs: [SongInput]) {
+            updateCD(id: $id, title: $title, artist: $artist, category: $category, manufacturer: $manufacturer, year: $year, condition: $condition, rating: $rating, description: $description, photos: $photos, songs: $songs) {
+                id
             }
-        ` : `
-            mutation AddCD($title: String!, $artist: String!, $category: String, $manufacturer: String, $year: Int, $condition: String, $rating: Int, $description: String, $songs: [String], $photos: [String]) {
-                addCD(title: $title, artist: $artist, category: $category, manufacturer: $manufacturer, year: $year, condition: $condition, rating: $rating, description: $description, songs: $songs, photos: $photos)
-            }
-        `;
-
-        const variables = { ...cd };
-
-        if (isUpdate) {
-            variables.id = parseInt(id, 10);
         }
+    ` : `
+        mutation AddCD($title: String!, $artist: String!, $category: String, $manufacturer: String, $year: Int, $condition: String, $rating: Int, $description: String, $photos: [String], $songs: [SongInput]) {
+            addCD(title: $title, artist: $artist, category: $category, manufacturer: $manufacturer, year: $year, condition: $condition, rating: $rating, description: $description, photos: $photos, songs: $songs)
+        }
+    `;
 
+        // --- CRITICAL FIX START ---
+        // Map your string array to an array of objects for the SongInput type
+        const sanitizedSongs = (cdData.songs || []).map((song, index) => {
+            if (typeof song === 'string') {
+                return {
+                    title: song,
+                    duration: "0:00", // Default value since form only provides title
+                    trackNumber: index + 1
+                };
+            }
+            return song; // Already an object
+        });
+        // --- CRITICAL FIX END ---
+
+        const variables = {
+            ...cdData,
+            songs: sanitizedSongs // Use the sanitized array here
+        };
+
+        if (isUpdate) variables.id = parseInt(id, 10);
         variables.year = variables.year ? parseInt(variables.year, 10) : null;
         variables.rating = variables.rating ? parseInt(variables.rating, 10) : null;
 
@@ -100,47 +107,69 @@ function App() {
 
             if (json.errors) {
                 console.error("GraphQL Mutation Rejected:", json.errors);
-                alert("Failed to save CD. Check the browser console for exact details.");
+                alert("GraphQL Error: " + json.errors.message);
                 return;
             }
-
             refresh();
-
         } catch (err) {
             console.error("Network error:", err);
         }
     };
 
-    const fetchRatingStats = async () => {
+    const addSong = async (cdId, songData) => {
         const query = `
-            query GetRatingStats {
-                ratingStats {
-                    rating
-                    count
+            mutation AddSong($cdId: Int!, $title: String!, $duration: String, $trackNumber: Int) {
+                addSong(cdId: $cdId, title: $title, duration: $duration, trackNumber: $trackNumber) {
+                    id
+                    title
                 }
             }
         `;
+        const variables = {
+            cdId: parseInt(cdId, 10),
+            title: songData.title,
+            duration: songData.duration,
+            trackNumber: parseInt(songData.trackNumber, 10) || 0
+        };
+
+        try {
+            await fetch(GRAPHQL_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query, variables }),
+            });
+            refresh();
+        } catch (err) {
+            console.error("Error adding song:", err);
+        }
+    };
+
+    const fetchRatingStats = async () => {
+        const query = `query { ratingStats { rating count } }`;
         try {
             const res = await fetch(GRAPHQL_ENDPOINT, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ query })
             });
-
-            if (!res.ok) throw new Error("Failed to fetch rating stats");
-
             const json = await res.json();
-
             const statsMap = {};
-            json.data.ratingStats.forEach(stat => {
-                statsMap[stat.rating] = stat.count;
-            });
-
+            json.data.ratingStats.forEach(s => statsMap[s.rating] = s.count);
             return statsMap;
-        } catch (err) {
-            console.error("Rating stats error:", err);
-            return {};
-        }
+        } catch (err) { return {}; }
+    };
+
+    const fetchSongFrequencyStats = async () => {
+        const query = `query { songFrequencyStats { songCount numberOfCds } }`;
+        try {
+            const res = await fetch(GRAPHQL_ENDPOINT, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query })
+            });
+            const json = await res.json();
+            return json.data.songFrequencyStats;
+        } catch (err) { return []; }
     };
 
     return (
@@ -151,69 +180,45 @@ function App() {
 
                 <Route path="/master-view" element={
                     <ProtectedRoute>
-                        <MasterView
-                            cds={cds}
-                            deleteCD={deleteCD}
-                            loadMore={loadMore}
-                            hasMore={hasMore}
-                            loading={loading}
-                        />
+                        <MasterView cds={cds} deleteCD={deleteCD} loadMore={loadMore} hasMore={hasMore} loading={loading} />
                     </ProtectedRoute>
                 } />
 
                 <Route path="/grid-view" element={
                     <ProtectedRoute>
-                        <GridView
-                            cds={cds}
-                            deleteCD={deleteCD}
-                            loadMore={loadMore}
-                            hasMore={hasMore}
-                            loading={loading}
-                        />
+                        <GridView cds={cds} deleteCD={deleteCD} loadMore={loadMore} hasMore={hasMore} loading={loading} />
                     </ProtectedRoute>
                 } />
 
                 <Route path="/dashboard" element={
                     <ProtectedRoute>
                         <DashboardView
-                            cds={cds}
-                            saveCD={saveCD}
-                            deleteCD={deleteCD}
+                            cds={cds} saveCD={saveCD} deleteCD={deleteCD}
                             fetchRatingStats={fetchRatingStats}
-                            loadMore={loadMore}
-                            hasMore={hasMore}
-                            loading={loading}
+                            loadMore={loadMore} hasMore={hasMore} loading={loading}
                         />
                     </ProtectedRoute>
                 } />
 
-                <Route path="/add" element={
-                    <ProtectedRoute>
-                        <AddCDForm saveCD={saveCD} />
-                    </ProtectedRoute>
-                } />
+                <Route path="/add" element={<ProtectedRoute><AddCDForm saveCD={saveCD} /></ProtectedRoute>} />
+                <Route path="/edit/:id" element={<ProtectedRoute><AddCDForm saveCD={saveCD} /></ProtectedRoute>} />
+                <Route path="/details/:id" element={<ProtectedRoute><DetailsView /></ProtectedRoute>} />
 
-                <Route path="/edit/:id" element={
-                    <ProtectedRoute>
-                        <AddCDForm saveCD={saveCD} />
-                    </ProtectedRoute>
-                } />
-
-                <Route path="/details/:id" element={
-                    <ProtectedRoute>
-                        <DetailsView />
-                    </ProtectedRoute>
-                } />
-
+                {/* RESTORED PROPS */}
                 <Route path="/details/:id/songs" element={
                     <ProtectedRoute>
-                        <SongListView />
+                        <SongListView
+                            addSong={addSong}
+                        />
                     </ProtectedRoute>
                 } />
 
                 <Route path="/stats" element={
                     <ProtectedRoute>
-                        <StatisticsView fetchRatingStats={fetchRatingStats} />
+                        <StatisticsView
+                            fetchRatingStats={fetchRatingStats}
+                            fetchSongFrequencyStats={fetchSongFrequencyStats}
+                        />
                     </ProtectedRoute>
                 } />
             </Routes>

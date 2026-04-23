@@ -2,9 +2,9 @@ package com.example.DisclioApp.Server.service;
 
 import com.example.DisclioApp.Server.model.CD;
 import com.example.DisclioApp.Server.repository.CDRepository;
+import com.example.DisclioApp.Server.repository.SongRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -13,9 +13,11 @@ import java.util.stream.Collectors;
 @Service
 public class CDService {
     private final CDRepository cdRepository;
+    private final SongRepository songRepository;
 
-    public CDService(CDRepository cdRepository) {
+    public CDService(CDRepository cdRepository, SongRepository songRepository) {
         this.cdRepository = cdRepository;
+        this.songRepository = songRepository;
     }
 
     public void addCD(CD cd) {
@@ -31,6 +33,7 @@ public class CDService {
     }
 
     public CD deleteCD(int id) {
+        songRepository.deleteByCdId(id);
         return cdRepository.deleteCD(id).orElse(null);
     }
 

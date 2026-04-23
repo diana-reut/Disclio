@@ -12,7 +12,7 @@ public class CD {
     private String condition;
     private Integer rating;
     private String description;
-    private List<String> songs;
+    private List<Song> songs;
     private List<String> photos;
 
     public void updateCD(CD newCD){
@@ -92,13 +92,8 @@ public class CD {
         this.description = description;
     }
 
-    public List<String> getSongs() {
-        return songs;
-    }
-
-    public void setSongs(List<String> songs) {
-        this.songs = songs;
-    }
+    public List<Song> getSongs() { return songs; }
+    public void setSongs(List<Song> songs) { this.songs = songs; }
 
     public List<String> getPhotos() {
         return photos;

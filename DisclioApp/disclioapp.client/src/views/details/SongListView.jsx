@@ -9,135 +9,161 @@ export function SongListView() {
 
     const [cd, setCd] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isEditing, setIsEditing] = useState(false);
+    const [newSongTitle, setNewSongTitle] = useState("");
+
+    const GRAPHQL_ENDPOINT = 'http://localhost:8080/graphql';
+
+    const fetchCdData = () => {
+        const query = `
+            query GetSongs($id: Int!) {
+                cd(id: $id) {
+                    id title artist rating photos
+                    songs { id title trackNumber }
+                }
+            }
+        `;
+        fetch(GRAPHQL_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, variables: { id: parseInt(id, 10) } }),
+        })
+            .then(res => res.json())
+            .then(json => {
+                if (json.data?.cd) setCd(json.data.cd);
+                setLoading(false);
+            });
+    };
 
     useEffect(() => {
-        fetch(`http://localhost:8080/api/cds/${id}`)
-            .then(res => {
-    if (!res.ok) throw new Error("Album not found");
-    return res.json();
-})
-    .then(data => {
-        setCd(data);
-        setLoading(false);
-    })
-    .catch(err => {
-        console.error("Failed to load CD:", err);
-        setCd(null);
-        setLoading(false);
-    });
+        fetchCdData();
     }, [id]);
 
-if (loading) return <div className="error-msg">Loading...</div>;
-if (!cd) return <div className="error-msg">Album not found</div>;
+    // This handles BOTH adding and updating
+    const handleSaveSong = async (songId, title, trackNo) => {
+        if (!title.trim()) return;
 
-const songs = cd.songs || [];
-const half = Math.ceil(songs.length / 2);
-const leftColumn = songs.slice(0, half);
-const rightColumn = songs.slice(half);
+        const query = `
+            mutation AddSong($id: Int, $cdId: Int!, $title: String!, $trackNumber: Int) {
+                addSong(id: $id, cdId: $cdId, title: $title, trackNumber: $trackNumber) { id title }
+            }
+        `;
 
-const listContainer = {
-    hidden: { opacity: 0 },
-    show: {
-        opacity: 1,
-        transition: { staggerChildren: 0.1, delayChildren: 0.3 }
-    }
-};
+        await fetch(GRAPHQL_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query,
+                variables: {
+                    id: songId ? parseInt(songId) : null, // ID present = Update
+                    cdId: parseInt(id),
+                    title: title,
+                    trackNumber: trackNo
+                }
+            }),
+        });
+        fetchCdData();
+    };
 
-const itemFade = {
-    hidden: { opacity: 0, y: 10 },
-    show: { opacity: 1, y: 0 }
-};
+    const handleDeleteSong = async (songId) => {
+        const query = `mutation DeleteSong($id: Int!) { deleteSong(id: $id) }`;
+        await fetch(GRAPHQL_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, variables: { id: parseInt(songId) } }),
+        });
+        fetchCdData();
+    };
 
-return (
-    <motion.div
-        className="song-view-container"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-    >
-        <button className="back-btn" onClick={() => navigate(-1)}>
-            Back
-        </button>
+    if (loading) return <div className="error-msg">Loading...</div>;
+    if (!cd) return <div className="error-msg">Album not found</div>;
 
-        <motion.div
-            className="song-display-grid"
-            variants={listContainer}
-            initial="hidden"
-            animate="show"
-        >
+    const songs = cd.songs || [];
+    const half = Math.ceil(songs.length / 2);
+    const leftColumn = songs.slice(0, half);
+    const rightColumn = songs.slice(half);
 
-            {/* LEFT */}
-            <div className="song-column left">
-                {leftColumn.map((song, i) => {
-                    const trackNumber = i + 1;
-                    const isEven = trackNumber % 2 === 0;
+    const listContainer = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } } };
+    const itemFade = { hidden: { opacity: 0, x: -10 }, show: { opacity: 1, x: 0 } };
 
-                    return (
-                        <motion.div key={i} className="song-item" variants={itemFade}>
-                            <span
-                                className="song-text"
-                                style={{ color: isEven ? 'black' : 'purple' }}
-                            >
-                                {String(trackNumber).padStart(2, '0')}. {song}
-                            </span>
+    // Helper to render the song text or input
+    const renderSongContent = (song, displayIndex) => {
+        const isEven = displayIndex % 2 === 0;
+
+        if (isEditing) {
+            return (
+                <input
+                    className="song-edit-input"
+                    defaultValue={song.title}
+                    onBlur={(e) => handleSaveSong(song.id, e.target.value, song.trackNumber)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSaveSong(song.id, e.target.value, song.trackNumber)}
+                    autoFocus={false}
+                />
+            );
+        }
+
+        return (
+            <span className="song-text" style={{ color: isEven ? 'black' : 'purple' }}>
+                {String(displayIndex).padStart(2, '0')}. {song.title}
+            </span>
+        );
+    };
+
+    return (
+        <motion.div className="song-view-container" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <button className="back-btn" onClick={() => navigate(-1)}>Back</button>
+
+            <motion.div className="song-display-grid" variants={listContainer} initial="hidden" animate="show">
+                {/* LEFT COLUMN */}
+                <div className="song-column left">
+                    {leftColumn.map((song, i) => (
+                        <motion.div key={song.id} className="song-item" variants={itemFade}>
+                            {isEditing && <button className="del-song-btn" onClick={() => handleDeleteSong(song.id)}>✕</button>}
+                            {renderSongContent(song, i + 1)}
                             <div className="connector-line"></div>
                         </motion.div>
-                    );
-                })}
-            </div>
+                    ))}
+                </div>
 
-            {/* CENTER */}
-            <motion.div
-                className="center-art-section"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-            >
-                <h2 className="album-title-top">
-                    {cd.title?.toUpperCase()}
-                </h2>
+                {/* CENTER ART */}
+                <motion.div className="center-art-section">
+                    <h2 className="album-title-top">{cd.title?.toUpperCase()}</h2>
+                    <img
+                        src={cd.photos || 'placeholder.jpg'}
+                        alt={cd.title}
+                        className="center-album-art"
+                    />
+                    <p className="artist-name-bottom">{cd.artist}</p>
 
-                <img
-                    src={cd.cover}
-                    alt={cd.title}
-                    className="center-album-art"
-                />
+                    {isEditing && (
+                        <div className="add-song-mini-form">
+                            <input
+                                type="text"
+                                placeholder="New track title..."
+                                value={newSongTitle}
+                                onChange={(e) => setNewSongTitle(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSaveSong(null, newSongTitle, songs.length + 1)}
+                            />
+                            <button onClick={() => { handleSaveSong(null, newSongTitle, songs.length + 1); setNewSongTitle(""); }}>Add</button>
+                        </div>
+                    )}
+                </motion.div>
 
-                <p className="artist-name-bottom">{cd.artist}</p>
-
-                <div className="stars-display">
-                    {"★".repeat(cd.rating || 0)}
-                    {"☆".repeat(5 - (cd.rating || 0))}
+                {/* RIGHT COLUMN */}
+                <div className="song-column right">
+                    {rightColumn.map((song, i) => (
+                        <motion.div key={song.id} className="song-item" variants={itemFade}>
+                            <div className="connector-line"></div>
+                            {renderSongContent(song, i + half + 1)}
+                            {isEditing && <button className="del-song-btn" onClick={() => handleDeleteSong(song.id)}>✕</button>}
+                        </motion.div>
+                    ))}
                 </div>
             </motion.div>
 
-            {/* RIGHT */}
-            <div className="song-column right">
-                {rightColumn.map((song, i) => {
-                    const trackNumber = i + half + 1;
-                    const isEven = trackNumber % 2 === 0;
-
-                    return (
-                        <motion.div key={i} className="song-item" variants={itemFade}>
-                            <div className="connector-line"></div>
-                            <span
-                                className="song-text"
-                                style={{ color: isEven ? 'black' : 'purple' }}
-                            >
-                                {String(trackNumber).padStart(2, '0')}. {song}
-                            </span>
-                        </motion.div>
-                    );
-                })}
-            </div>
-
+            <button className="edit-link" onClick={() => setIsEditing(!isEditing)}>
+                {isEditing ? "Finish Editing" : "Edit Songs"}
+            </button>
         </motion.div>
-
-        <button
-            className="edit-link"
-            onClick={() => navigate(`/edit/${cd.id}`)}
-        >
-            Edit
-        </button>
-    </motion.div>
-);
+    );
 }

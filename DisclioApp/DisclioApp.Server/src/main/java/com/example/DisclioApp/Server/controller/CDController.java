@@ -1,7 +1,9 @@
 package com.example.DisclioApp.Server.controller;
 
 import com.example.DisclioApp.Server.model.CD;
+import com.example.DisclioApp.Server.model.Song;
 import com.example.DisclioApp.Server.service.CDService;
+import com.example.DisclioApp.Server.service.SongService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,9 +14,11 @@ import java.util.Map;
 @CrossOrigin(origins = "http://localhost:5173", exposedHeaders = "Total-Count")
 public class CDController {
     private final CDService cdService;
+    private final SongService songService; // 1. Inject SongService
 
-    public CDController(CDService cdService) {
+    public CDController(CDService cdService, SongService songService) {
         this.cdService = cdService;
+        this.songService = songService;
     }
 
     @PostMapping("/api/cds")
@@ -79,5 +83,15 @@ public class CDController {
     @GetMapping("/api/cds/stats/ratings")
     public ResponseEntity<Map<Integer, Long>> getRatingStats() {
         return ResponseEntity.ok(cdService.getRatingDistribution());
+    }
+
+    @GetMapping("/api/cds/stats/song-frequency")
+    public ResponseEntity<Map<Integer, Long>> getSongFrequencyStats() {
+        return ResponseEntity.ok(songService.getCdCountBySongFrequency());
+    }
+
+    @GetMapping("/api/cds/{id}/songs")
+    public ResponseEntity<List<Song>> getSongsByCd(@PathVariable int id) {
+        return ResponseEntity.ok(songService.getSongsByCd(id));
     }
 }

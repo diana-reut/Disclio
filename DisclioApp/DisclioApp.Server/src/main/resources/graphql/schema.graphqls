@@ -1,3 +1,9 @@
+input SongInput {
+    title: String!
+    duration: String
+    trackNumber: Int
+}
+
 type CD {
     id: Int
     title: String
@@ -8,16 +14,26 @@ type CD {
     condition: String
     rating: Int
     description: String
-    songs: [String]
+    songs: [Song]
     photos: [String]
+}
+
+type Song {
+    id: Int!
+    cdId: Int!
+    title: String!
+    duration: String
+    trackNumber: Int
 }
 
 type Query {
     cds: [CD]
     cd(id: Int!): CD
     pagedCds(page: Int!, size: Int!): [CD]
-    ratingStats: [RatingStat]
     totalCount: Int
+    ratingStats: [RatingStat]
+    songFrequencyStats: [SongFrequencyStat]
+    songsByCd(cdId: Int!): [Song]
 }
 
 type Mutation {
@@ -30,11 +46,9 @@ type Mutation {
         condition: String,
         rating: Int,
         description: String,
-        songs: [String],
+        songs: [SongInput],
         photos: [String]
     ): String
-
-    deleteCD(id: Int!): String
 
     updateCD(
         id: Int!,
@@ -46,12 +60,20 @@ type Mutation {
         condition: String,
         rating: Int,
         description: String,
-        songs: [String],
+        songs: [SongInput],
         photos: [String]
     ): CD
+    deleteCD(id: Int!): String
+
+    addSong(
+        id: Int,
+        cdId: Int!,
+        title: String!,
+        duration: String,
+        trackNumber: Int
+    ): Song
+    deleteSong(id: Int!): Boolean
 }
 
-type RatingStat {
-    rating: Int
-    count: Int
-}
+type RatingStat { rating: Int, count: Int }
+type SongFrequencyStat { songCount: Int, numberOfCds: Int }
