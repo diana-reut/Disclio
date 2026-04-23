@@ -1,127 +1,117 @@
-import '@testing-library/jest-dom/vitest';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { MasterView } from './MasterView';
 import { MemoryRouter } from 'react-router-dom';
+import { MasterView } from './MasterView';
 
-// Mock useNavigate
-const mockNavigate = vi.fn();
-
-vi.mock('react-router-dom', async () => {
-    const actual = await vi.importActual('react-router-dom');
-    return {
-        ...actual,
-        useNavigate: () => mockNavigate,
-    };
-});
-
-const mockCDs = Array.from({ length: 10 }, (_, i) => ({
-    title: `Title ${i + 1}`,
-    artist: `Artist ${i + 1}`,
-    cover: `cover${i + 1}.jpg`,
+// 1. Mock IntersectionObserver
+const mockObserve = jest.fn();
+const mockDisconnect = jest.fn();
+global.IntersectionObserver = jest.fn().mockImplementation((callback) => ({
+    observe: mockObserve,
+    disconnect: mockDisconnect,
+    unobserve: jest.fn(),
 }));
 
-describe('MasterView', () => {
-    let deleteCD;
-    let setCurrentPage;
+// 2. Mock Navigate
+const mockedNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+    ...jest.requireActual('react-router-dom'),
+    useNavigate: () => mockedNavigate,
+}));
+
+const mockCds = [
+    { id: 1, title: 'Homework', artist: 'Daft Punk', cover: 'homework.jpg' },
+    { id: 2, title: 'Cross', artist: 'Justice', cover: 'cross.jpg' }
+];
+
+describe('MasterView Component', () => {
+    const mockDeleteCD = jest.fn();
+    const mockLoadMore = jest.fn();
 
     beforeEach(() => {
-        deleteCD = vi.fn();
-        setCurrentPage = vi.fn();
-        mockNavigate.mockClear();
+        jest.clearAllMocks();
     });
 
-    const renderComponent = (page = 1) =>
-        render(
+    const renderTable = (props = {}) => {
+        return render(
             <MemoryRouter>
                 <MasterView
-                    deleteCD={deleteCD}
-                    currentPage={page}
-                    setCurrentPage={setCurrentPage}
-                    cds={mockCDs}
+                    cds={mockCds}
+                    deleteCD={mockDeleteCD}
+                    loadMore={mockLoadMore}
+                    hasMore={true}
+                    loading={false}
+                    {...props}
                 />
             </MemoryRouter>
         );
+    };
 
-    it('renders table with correct number of items (5 per page)', () => {
-        renderComponent();
-
-        const rows = screen.getAllByRole('row');
-        // 1 header row + 5 data rows
-        expect(rows.length).toBe(6);
+    test('renders CD rows correctly', () => {
+        renderTable();
+        expect(screen.getByText('Homework')).toBeInTheDocument();
+        expect(screen.getByText('Cross')).toBeInTheDocument();
+        // Check row index numbering (index + 1)
+        expect(screen.getByText('1')).toBeInTheDocument();
+        expect(screen.getByText('2')).toBeInTheDocument();
     });
 
-    it('navigates to add page when "+ Add Album" is clicked', () => {
-        renderComponent();
-
-        fireEvent.click(screen.getByText('+ Add Album'));
-        expect(mockNavigate).toHaveBeenCalledWith('/add');
+    test('navigates to details on row click', () => {
+        renderTable();
+        // Get a cell from the row
+        const rowCell = screen.getByText('Homework');
+        // The row is the parent tr
+        fireEvent.click(rowCell.closest('tr'));
+        expect(mockedNavigate).toHaveBeenCalledWith('/details/1');
     });
 
-    it('navigates to stats page', () => {
-        renderComponent();
+    test('edit button navigates and stops propagation', () => {
+        renderTable();
+        const editButtons = screen.getAllByText('Edit');
+
+        fireEvent.click(editButtons);
+
+        expect(mockedNavigate).toHaveBeenCalledWith('/edit/1');
+        // Ensure the row click (details) wasn't triggered
+        expect(mockedNavigate).not.toHaveBeenCalledWith('/details/1');
+    });
+
+    test('delete button triggers deleteCD and stops propagation', () => {
+        renderTable();
+        const deleteButtons = screen.getAllByText('🗑️');
+
+        fireEvent.click(deleteButtons); // Delete Justice
+
+        expect(mockDeleteCD).toHaveBeenCalledWith(2);
+        // Ensure row click navigation was not triggered
+        expect(mockedNavigate).not.toHaveBeenCalled();
+    });
+
+    test('renders "No CDs found" when list is empty', () => {
+        renderTable({ cds: [] });
+        expect(screen.getByText(/No CDs found/i)).toBeInTheDocument();
+        // Verify colSpan matches header count
+        expect(screen.getByText(/No CDs found/i)).toHaveAttribute('colSpan', '5');
+    });
+
+    test('infinite scroll triggers loadMore', () => {
+        renderTable();
+
+        // Extract the callback from the mock
+        const [observerCallback] = global.IntersectionObserver.mock.calls;
+
+        // Simulate intersection
+        observerCallback([{ isIntersecting: true }]);
+
+        expect(mockLoadMore).toHaveBeenCalled();
+    });
+
+    test('header buttons navigate to correct views', () => {
+        renderTable();
 
         fireEvent.click(screen.getByText('Stats'));
-        expect(mockNavigate).toHaveBeenCalledWith('/stats');
-    });
-
-    it('navigates to grid view and resets page', () => {
-        renderComponent();
+        expect(mockedNavigate).toHaveBeenCalledWith('/stats');
 
         fireEvent.click(screen.getByText('Grid View'));
-        expect(setCurrentPage).toHaveBeenCalledWith(1);
-        expect(mockNavigate).toHaveBeenCalledWith('/grid-view');
-    });
-
-    it('navigates to details when row is clicked', () => {
-        renderComponent();
-
-        const firstRow = screen.getAllByRole('row')[1];
-        fireEvent.click(firstRow);
-
-        expect(mockNavigate).toHaveBeenCalledWith('/details/0');
-    });
-
-    it('edit button navigates correctly without triggering row click', () => {
-        renderComponent();
-
-        const editButtons = screen.getAllByText('Edit');
-        fireEvent.click(editButtons[0]);
-
-        expect(mockNavigate).toHaveBeenCalledWith('/edit/0');
-    });
-
-    it('delete button calls deleteCD with correct index', () => {
-        renderComponent();
-
-        const deleteButtons = screen.getAllByText('🗑️');
-        fireEvent.click(deleteButtons[0]);
-
-        expect(deleteCD).toHaveBeenCalledWith(0);
-    });
-
-    it('prev button is disabled on first page', () => {
-        renderComponent(1);
-
-        expect(screen.getByText('Prev')).toBeDisabled();
-    });
-
-    it('next button is enabled when more items exist', () => {
-        renderComponent(1);
-
-        expect(screen.getByText('Next')).not.toBeDisabled();
-    });
-
-    it('pagination next button calls setCurrentPage', () => {
-        renderComponent(1);
-
-        fireEvent.click(screen.getByText('Next'));
-        expect(setCurrentPage).toHaveBeenCalled();
-    });
-
-    it('shows next page items correctly', () => {
-        renderComponent(2);
-
-        expect(screen.getByText('Title 6')).toBeInTheDocument();
+        expect(mockedNavigate).toHaveBeenCalledWith('/grid-view');
     });
 });

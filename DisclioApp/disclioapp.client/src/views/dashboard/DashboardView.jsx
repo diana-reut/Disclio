@@ -1,93 +1,59 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { GridView } from '../mainViews/GridView';
-import { StatisticsView } from '../statistics/StatisticsView';
-import './DashboardView.css';
-
-const generateRandomCD = () => {
-    const artists = ["Pink Floyd", "Daft Punk", "Miles Davis", "Radiohead", "The Beatles", "Led Zeppelin", "Green Day", "Dua Lipa", "Billie Eilish"];
-    const albums = ["The Dark Side of the Moon", "Discovery", "Kind of Blue", "OK Computer", "Abbey Road", "American Idiot", "Future Nostalgia", "Happier Than Ever"];
-    const genres = ["Rock", "Electronic", "Jazz", "Alternative", "Pop"];
-
-    const randomArtist = artists[Math.floor(Math.random() * artists.length)];
-    const randomAlbum = albums[Math.floor(Math.random() * albums.length)];
-    const randomGenre = genres[Math.floor(Math.random() * genres.length)];
-
-    return {
-        title: randomAlbum,
-        artist: randomArtist,
-        category: randomGenre,
-        manufacturer: "Random Records Inc.",
-        year: 1970 + Math.floor(Math.random() * 50),
-        condition: "Near Mint",
-        rating: Math.floor(Math.random() * 5) + 1,
-        description: "Auto generated CD",
-        songs: ["Track 1", "Track 2"],
-        photos: ["/pompom.jpg"],
-        cover: "/pompom.jpg"
-    };
-};
+import React, { useState } from "react";
+import { GridView } from "../mainViews/GridView";
+import { StatisticsView } from "../statistics/StatisticsView";
+import "./DashboardView.css";
+import { useCDSocket } from "../../hooks/useCDSocket";
 
 export function DashboardView({
     cds,
-    saveCD,
+    setCds,
     deleteCD,
-    loadMore,     
-    hasMore,      
-    loading,     
+    loadMore,
+    hasMore,
+    loading,
     fetchRatingStats
 }) {
 
-    const [isAutoAdding, setIsAutoAdding] = useState(false);
-    const intervalRef = useRef(null);
+    // WebSocket live updates
+    useCDSocket((newCD) => {
+        console.log("WS RECEIVED:", newCD);
 
-    const toggleAutoAdd = () => {
-        setIsAutoAdding(prev => !prev);
-    };
+        setCds(prev => {
+            // prevent duplicates (important)
+            const exists = prev.some(cd => cd.id === newCD.id);
+            if (exists) return prev;
 
-    useEffect(() => {
-        if (isAutoAdding) {
-            intervalRef.current = setInterval(() => {
-                saveCD(generateRandomCD());
-            }, 1000);
-        } else {
-            clearInterval(intervalRef.current);
-        }
-
-        return () => clearInterval(intervalRef.current);
-    }, [isAutoAdding, saveCD]);
+            return [newCD, ...prev];
+        });
+    });
 
     return (
         <div className="dashboard-outer-wrapper">
             <div className="dashboard-container">
 
                 <header className="dashboard-header">
-                    <button
-                        onClick={toggleAutoAdd}
-                        className={`small-btn ${isAutoAdding ? 'active-stop' : ''}`}
-                    >
-                        {isAutoAdding ? 'Stop Adding' : 'Start Adding'}
+                    <button className="small-btn active-stop">
+                        Live Generator Running (WebSocket)
                     </button>
                 </header>
 
                 <div className="dashboard-grid">
 
-                    {/* STATS */}
                     <aside className="stats-column">
                         <div className="dashboard-section stats-card sticky-stats">
                             <StatisticsView fetchRatingStats={fetchRatingStats} />
                         </div>
                     </aside>
 
-                    {/* GRID */}
                     <main className="gallery-column">
                         <section className="dashboard-section gallery-card">
 
                             <GridView
                                 cds={cds}
                                 deleteCD={deleteCD}
-                                loadMore={loadMore}     
-                                hasMore={hasMore}      
-                                loading={loading}       
+                                loadMore={loadMore}
+                                hasMore={hasMore}
+                                loading={loading}
                             />
 
                         </section>

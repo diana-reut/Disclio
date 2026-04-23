@@ -1,183 +1,110 @@
-import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { vi, describe, test, expect, beforeEach } from 'vitest';
 import { GridView } from './GridView';
 
-// mock navigate
-const mockNavigate = vi.fn();
+// 1. Mock IntersectionObserver (essential for the lastElementRef logic)
+const mockObserve = jest.fn();
+const mockDisconnect = jest.fn();
 
-vi.mock('react-router-dom', async () => {
-    const actual = await vi.importActual('react-router-dom');
-    return {
-        ...actual,
-        useNavigate: () => mockNavigate
-    };
-});
+global.IntersectionObserver = jest.fn().mockImplementation((callback) => ({
+    observe: mockObserve,
+    disconnect: mockDisconnect,
+    unobserve: jest.fn(),
+}));
 
-// helpers
-const createMockCDs = (count) =>
-    Array.from({ length: count }, (_, i) => ({
-        title: `Album ${i}`,
-        artist: `Artist ${i}`,
-        cover: `cover${i}.jpg`
-    }));
+// 2. Mock Navigate
+const mockedNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+    ...jest.requireActual('react-router-dom'),
+    useNavigate: () => mockedNavigate,
+}));
 
-describe('GridView Full Coverage (Vitest)', () => {
+const mockCds = [
+    { id: 1, title: 'Discovery', artist: 'Daft Punk', cover: 'daft.jpg' },
+    { id: 2, title: 'Justice', artist: 'Justice', cover: 'justice.jpg' }
+];
 
-    let mockSetCurrentPage;
-    let mockDelete;
+describe('GridView Component', () => {
+    const mockDeleteCD = jest.fn();
+    const mockLoadMore = jest.fn();
 
     beforeEach(() => {
-        vi.clearAllMocks();
-        mockSetCurrentPage = vi.fn();
-        mockDelete = vi.fn();
+        jest.clearAllMocks();
     });
 
-    function renderComponent({
-        cds = createMockCDs(12),
-        currentPage = 1
-    } = {}) {
+    const renderGrid = (props = {}) => {
         return render(
             <MemoryRouter>
                 <GridView
-                    cds={cds}
-                    currentPage={currentPage}
-                    setCurrentPage={mockSetCurrentPage}
-                    deleteCD={mockDelete}
+                    cds={mockCds}
+                    deleteCD={mockDeleteCD}
+                    loadMore={mockLoadMore}
+                    hasMore={true}
+                    loading={false}
+                    {...props}
                 />
             </MemoryRouter>
         );
-    }
+    };
 
-    test('renders first page items (pagination slice)', () => {
-        renderComponent({ cds: createMockCDs(12), currentPage: 1 });
-
-        // Only first 9 should appear
-        expect(screen.getByText('ALBUM 0')).toBeInTheDocument();
-        expect(screen.getByText('ALBUM 8')).toBeInTheDocument();
-
-        // 10th should NOT appear
-        expect(screen.queryByText('ALBUM 9')).not.toBeInTheDocument();
+    test('renders the grid of albums correctly', () => {
+        renderGrid();
+        expect(screen.getByText('DISCOVERY')).toBeInTheDocument();
+        expect(screen.getByText('JUSTICE')).toBeInTheDocument();
+        expect(screen.getAllByRole('img')).toHaveLength(2);
     });
 
-    test('renders second page items correctly', () => {
-        renderComponent({ cds: createMockCDs(12), currentPage: 2 });
-
-        expect(screen.getByText('ALBUM 9')).toBeInTheDocument();
-        expect(screen.getByText('ALBUM 11')).toBeInTheDocument();
+    test('navigates to details page when clicking a card', () => {
+        renderGrid();
+        const firstCard = screen.getByText('DISCOVERY').closest('.grid-item');
+        fireEvent.click(firstCard);
+        expect(mockedNavigate).toHaveBeenCalledWith('/details/1');
     });
 
-    test('navigates to add page', () => {
-        renderComponent();
+    test('calls deleteCD and prevents navigation bubbling', () => {
+        renderGrid();
+        // Get the first delete button
+        const deleteButtons = screen.getAllByText('🗑️');
+        fireEvent.click(deleteButtons);
+
+        // Ensure delete was called
+        expect(mockDeleteCD).toHaveBeenCalledWith(1);
+        // Ensure navigate was NOT called (because of e.stopPropagation)
+        expect(mockedNavigate).not.toHaveBeenCalled();
+    });
+
+    test('navigates to add, stats, and tabular views', () => {
+        renderGrid();
 
         fireEvent.click(screen.getByText('+ Add Album'));
-        expect(mockNavigate).toHaveBeenCalledWith('/add');
-    });
-
-    test('navigates to stats page', () => {
-        renderComponent();
+        expect(mockedNavigate).toHaveBeenCalledWith('/add');
 
         fireEvent.click(screen.getByText('See Stats'));
-        expect(mockNavigate).toHaveBeenCalledWith('/stats');
-    });
-
-    test('switch to tabular view resets page and navigates', () => {
-        renderComponent();
+        expect(mockedNavigate).toHaveBeenCalledWith('/stats');
 
         fireEvent.click(screen.getByText('Switch to Tabular View'));
-
-        expect(mockSetCurrentPage).toHaveBeenCalledWith(1);
-        expect(mockNavigate).toHaveBeenCalledWith('/master-view');
+        expect(mockedNavigate).toHaveBeenCalledWith('/master-view');
     });
 
-    test('clicking album navigates to details', () => {
-        renderComponent();
-
-        fireEvent.click(screen.getByText('ALBUM 0'));
-
-        expect(mockNavigate).toHaveBeenCalledWith('/details/0');
-    });
-
-    test('delete button calls deleteCD and stops propagation', () => {
-        renderComponent();
-
-        const deleteBtn = screen.getAllByText('🗑️')[0];
-
-        fireEvent.click(deleteBtn);
-
-        expect(mockDelete).toHaveBeenCalledWith(0);
-
-        // Ensure it did NOT trigger navigation
-        expect(mockNavigate).not.toHaveBeenCalledWith('/details/0');
-    });
-
-    test('prev button disabled on first page', () => {
-        renderComponent({ currentPage: 1 });
-
-        const prevBtn = screen.getByText('Prev');
-        expect(prevBtn).toBeDisabled();
-    });
-
-    test('next button disabled on last page', () => {
-        renderComponent({ cds: createMockCDs(9), currentPage: 1 });
-
-        const nextBtn = screen.getByText('Next');
-        expect(nextBtn).toBeDisabled();
-    });
-
-    test('prev button decreases page', () => {
-        renderComponent({ currentPage: 2 });
-
-        fireEvent.click(screen.getByText('Prev'));
-
-        expect(mockSetCurrentPage).toHaveBeenCalled();
-    });
-
-    test('next button increases page', () => {
-        renderComponent({ cds: createMockCDs(20), currentPage: 1 });
-
-        fireEvent.click(screen.getByText('Next'));
-
-        expect(mockSetCurrentPage).toHaveBeenCalled();
-    });
-
-    test('displays current page number', () => {
-        renderComponent({ currentPage: 3 });
-
-        expect(screen.getByText(/Page 3/)).toBeInTheDocument();
-    });
-
-    test('prev button calls updater function correctly', () => {
-        renderComponent({ currentPage: 2 });
-
-        fireEvent.click(screen.getByText('Prev'));
-
-        const updater = mockSetCurrentPage.mock.calls[0][0];
-        expect(updater(2)).toBe(1); // simulate React behavior
-    });
-
-    test('next button calls updater function correctly', () => {
-        renderComponent({ cds: createMockCDs(20), currentPage: 1 });
-
-        fireEvent.click(screen.getByText('Next'));
-
-        const updater = mockSetCurrentPage.mock.calls[0][0];
-        expect(updater(1)).toBe(2);
-    });
-
-    test('handles empty cds array', () => {
-        renderComponent({ cds: [], currentPage: 1 });
-
+    test('shows empty state message', () => {
+        renderGrid({ cds: [] });
         expect(screen.getByText('No albums available.')).toBeInTheDocument();
     });
 
-    test('clicking album on second page uses correct index offset', () => {
-        renderComponent({ cds: createMockCDs(12), currentPage: 2 });
-
-        fireEvent.click(screen.getByText('ALBUM 9'));
-
-        expect(mockNavigate).toHaveBeenCalledWith('/details/9');
+    test('shows loading indicator when loading more', () => {
+        renderGrid({ loading: true });
+        expect(screen.getByText('Loading more albums...')).toBeInTheDocument();
     });
 
+    test('triggers loadMore when intersection happens', () => {
+        renderGrid();
+
+        // Find the callback passed to IntersectionObserver
+        const [observerCallback] = global.IntersectionObserver.mock.calls;
+
+        // Simulate the intersection entry
+        observerCallback([{ isIntersecting: true }]);
+
+        expect(mockLoadMore).toHaveBeenCalled();
+    });
 });

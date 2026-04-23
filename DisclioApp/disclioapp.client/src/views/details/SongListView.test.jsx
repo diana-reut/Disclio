@@ -1,100 +1,116 @@
-import '@testing-library/jest-dom';
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { vi, describe, test, expect, beforeEach } from 'vitest';
 import { SongListView } from './SongListView';
+import { vi, describe, beforeEach, test, expect } from 'vitest';
 
-// mock navigate
-const mockNavigate = vi.fn();
+// 1. Mock Framer Motion
+vi.mock('framer-motion', () => ({
+    motion: {
+        div: ({ children, ...props }) => <div {...props}>{children}</div>,
+        h2: ({ children, ...props }) => <h2 {...props}>{children}</h2>,
+    },
+    AnimatePresence: ({ children }) => children,
+}));
 
+// 2. Mock Navigation
+const mockedNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
-        useNavigate: () => mockNavigate
+        useNavigate: () => mockedNavigate,
     };
 });
 
-const mockCds = [
-    {
-        title: 'Test Album',
-        artist: 'Test Artist',
-        cover: 'cover.jpg',
-        rating: 3,
-        songs: ['Song1', 'Song2', 'Song3', 'Song4']
-    }
-];
+// Setup global fetch mock
+globalThis.fetch = vi.fn();
 
-function renderComponent(id = "0", cds = mockCds) {
-    return render(
-        <MemoryRouter initialEntries={[`/details/${id}/songs`]}>
+const mockData = {
+    data: {
+        cd: {
+            id: 1,
+            title: 'Discovery',
+            artist: 'Daft Punk',
+            photos: 'daft-punk.jpg',
+            songs: [
+                { id: "101", title: 'One More Time', trackNumber: 1 },
+                { id: "102", title: 'Aerodynamic', trackNumber: 2 }
+            ]
+        }
+    }
+};
+
+describe('SongListView Component', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        fetch.mockResolvedValue({
+            json: async () => mockData,
+        });
+    });
+
+    const renderComponent = () => render(
+        <MemoryRouter initialEntries={['/songs/1']}>
             <Routes>
-                <Route path="/details/:id/songs" element={<SongListView cds={cds} />} />
+                <Route path="/songs/:id" element={<SongListView />} />
             </Routes>
         </MemoryRouter>
     );
-}
 
-describe('SongListView Full Coverage (Vitest)', () => {
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-    });
-
-    test('renders album not found when cd is missing', () => {
-        renderComponent("5");
-
-        expect(screen.getByText('Album not found')).toBeInTheDocument();
-    });
-
-    test('renders album info correctly', () => {
+    test('renders songs and album art correctly', async () => {
         renderComponent();
-
-        expect(screen.getByText('TEST ALBUM')).toBeInTheDocument();
-        expect(screen.getByText('Test Artist')).toBeInTheDocument();
-
-        const img = screen.getByRole('img');
-        expect(img).toHaveAttribute('src', 'cover.jpg');
+        await waitFor(() => {
+            expect(screen.getByText('DISCOVERY')).toBeInTheDocument();
+            expect(screen.getByText(/01. One More Time/)).toBeInTheDocument();
+        });
     });
 
-    test('renders songs split into two columns', () => {
+    test('toggles editing mode and shows inputs', async () => {
         renderComponent();
+        await waitFor(() => screen.getByText('Edit Songs'));
 
-        // Left column (first half)
-        expect(screen.getByText('01. Song1')).toBeInTheDocument();
-        expect(screen.getByText('02. Song2')).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Edit Songs'));
 
-        // Right column (second half)
-        expect(screen.getByText('03. Song3')).toBeInTheDocument();
-        expect(screen.getByText('04. Song4')).toBeInTheDocument();
+        expect(screen.getByText('Finish Editing')).toBeInTheDocument();
+
+        // Fix: getAllByRole returns an array, so we pick the first one
+        const inputs = screen.getAllByRole('textbox');
+        expect(inputs.value).toBe('One More Time');
     });
 
-    test('formats song numbers with leading zeros', () => {
+    test('handles song deletion', async () => {
         renderComponent();
+        await waitFor(() => screen.getByText('Edit Songs'));
+        fireEvent.click(screen.getByText('Edit Songs'));
 
-        expect(screen.getByText(/^01\./)).toBeInTheDocument();
-        expect(screen.getByText(/^02\./)).toBeInTheDocument();
+        const deleteButtons = screen.getAllByText('✕');
+        fireEvent.click(deleteButtons); // Click the first delete button
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({
+                    body: expect.stringContaining('DeleteSong')
+                })
+            );
+        });
     });
 
-    test('back button navigates back', () => {
+    test('updates song title on blur', async () => {
         renderComponent();
+        await waitFor(() => screen.getByText('Edit Songs'));
+        fireEvent.click(screen.getByText('Edit Songs'));
 
-        fireEvent.click(screen.getByText('Back'));
-        expect(mockNavigate).toHaveBeenCalledWith(-1);
+        const songInputs = screen.getAllByRole('textbox');
+        fireEvent.change(songInputs, { target: { value: 'One More Time (Remix)' } });
+        fireEvent.blur(songInputs);
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({
+                    body: expect.stringContaining('One More Time (Remix)')
+                })
+            );
+        });
     });
-
-    test('edit button navigates correctly', () => {
-        renderComponent();
-
-        fireEvent.click(screen.getByText('Edit'));
-        expect(mockNavigate).toHaveBeenCalledWith('/edit/0');
-    });
-
-    test('renders correct star rating', () => {
-        renderComponent();
-
-        expect(screen.getByText('★★★☆☆')).toBeInTheDocument();
-    });
-
 });

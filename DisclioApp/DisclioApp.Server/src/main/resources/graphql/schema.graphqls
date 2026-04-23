@@ -73,6 +73,8 @@ type Mutation {
         trackNumber: Int
     ): Song
     deleteSong(id: Int!): Boolean
+    startGenerator: String
+    stopGenerator: String
 }
 
 type RatingStat { rating: Int, count: Int }

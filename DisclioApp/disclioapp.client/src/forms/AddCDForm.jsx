@@ -52,27 +52,27 @@ export function AddCDForm({ saveCD }) {
         }
     }, [id, isEditMode]);
 
-const handleSongChange = (index, value) => {
-    const newSongs = [...songs];
-    newSongs[index] = value;
-    setSongs(newSongs);
-};
+    const handleSongChange = (index, value) => {
+        const newSongs = [...songs];
+        newSongs[index] = value;
+        setSongs(newSongs);
+    };
 
-const addSongField = () => setSongs([...songs, '']);
+    const addSongField = () => setSongs([...songs, '']);
 
-const removeSongField = (indexToRemove) => {
-    setSongs(songs.filter((_, index) => index !== indexToRemove));
-};
+    const removeSongField = (indexToRemove) => {
+        setSongs(songs.filter((_, index) => index !== indexToRemove));
+    };
 
-const handlePhotoUpload = (e) => {
-    const files = Array.from(e.target.files);
-    const newPhotos = files.map(file => URL.createObjectURL(file));
-    setPhotos([...photos, ...newPhotos]);
-};
+    const handlePhotoUpload = (e) => {
+        const files = Array.from(e.target.files);
+        const newPhotos = files.map(file => URL.createObjectURL(file));
+        setPhotos([...photos, ...newPhotos]);
+    };
 
-const removePhoto = (indexToRemove) => {
-    setPhotos(photos.filter((_, index) => index !== indexToRemove));
-};
+    const removePhoto = (indexToRemove) => {
+        setPhotos(photos.filter((_, index) => index !== indexToRemove));
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -101,125 +101,125 @@ const removePhoto = (indexToRemove) => {
         }
     };
 
-if (loading) return <p>Loading...</p>;
+    if (loading) return <p>Loading...</p>;
 
-return (
-    <div id="form-container">
-        <form onSubmit={handleSubmit} className="album-form">
-            <div className="form-grid">
+    return (
+        <div id="form-container">
+            <form onSubmit={handleSubmit} className="album-form">
+                <div className="form-grid">
 
-                <div className="form-column">
-                    <label>Title:</label>
-                    <input
-                        type="text"
-                        className={`form-input ${errors.title ? "error-shake" : ""}`}
-                        value={formData.title}
-                        onChange={e => setFormData({ ...formData, title: e.target.value })}
-                    />
+                    <div className="form-column">
+                        <label>Title:</label>
+                        <input
+                            type="text"
+                            className={`form-input ${errors.title ? "error-shake" : ""}`}
+                            value={formData.title}
+                            onChange={e => setFormData({ ...formData, title: e.target.value })}
+                        />
 
-                    <label>Artist:</label>
-                    <input
-                        type="text"
-                        className={`form-input ${errors.artist ? "error-shake" : ""}`}
-                        value={formData.artist}
-                        onChange={e => setFormData({ ...formData, artist: e.target.value })}
-                    />
+                        <label>Artist:</label>
+                        <input
+                            type="text"
+                            className={`form-input ${errors.artist ? "error-shake" : ""}`}
+                            value={formData.artist}
+                            onChange={e => setFormData({ ...formData, artist: e.target.value })}
+                        />
 
-                    <label>Category:</label>
-                    <input
-                        type="text"
-                        className="form-input"
-                        value={formData.category}
-                        onChange={e => setFormData({ ...formData, category: e.target.value })}
-                    />
+                        <label>Category:</label>
+                        <input
+                            type="text"
+                            className="form-input"
+                            value={formData.category}
+                            onChange={e => setFormData({ ...formData, category: e.target.value })}
+                        />
 
-                    <label>Manufacturer:</label>
-                    <input
-                        type="text"
-                        className="form-input"
-                        value={formData.manufacturer}
-                        onChange={e => setFormData({ ...formData, manufacturer: e.target.value })}
-                    />
+                        <label>Manufacturer:</label>
+                        <input
+                            type="text"
+                            className="form-input"
+                            value={formData.manufacturer}
+                            onChange={e => setFormData({ ...formData, manufacturer: e.target.value })}
+                        />
 
-                    <label>Year:</label>
-                    <input
-                        type="number"
-                        className="form-input"
-                        value={formData.year}
-                        onChange={e => setFormData({ ...formData, year: e.target.value })}
-                    />
+                        <label>Year:</label>
+                        <input
+                            type="number"
+                            className="form-input"
+                            value={formData.year}
+                            onChange={e => setFormData({ ...formData, year: e.target.value })}
+                        />
 
-                    <label>Condition:</label>
-                    <select
-                        className="form-input"
-                        value={formData.condition}
-                        onChange={e => setFormData({ ...formData, condition: e.target.value })}
-                    >
-                        <option>Mint</option>
-                        <option>Near Mint</option>
-                        <option>Very good</option>
-                        <option>Good</option>
-                        <option>Fair</option>
-                        <option>Poor</option>
-                    </select>
+                        <label>Condition:</label>
+                        <select
+                            className="form-input"
+                            value={formData.condition}
+                            onChange={e => setFormData({ ...formData, condition: e.target.value })}
+                        >
+                            <option>Mint</option>
+                            <option>Near Mint</option>
+                            <option>Very good</option>
+                            <option>Good</option>
+                            <option>Fair</option>
+                            <option>Poor</option>
+                        </select>
 
-                    <label>Rating:</label>
-                    <div className="star-rating">
-                        {[1, 2, 3, 4, 5].map(star => (
-                            <span
-                                key={star}
-                                onClick={() => setFormData({ ...formData, rating: star })}
-                                style={{ cursor: 'pointer', fontSize: '24px' }}
-                            >
-                                {star <= formData.rating ? '★' : '☆'}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="form-column">
-                    <label>Songs:</label>
-                    {songs.map((song, index) => (
-                        <div key={index} className="list-item-input">
-                            <span>{index + 1}.</span>
-                            <input
-                                type="text"
-                                className="form-input"
-                                value={song}
-                                onChange={(e) => handleSongChange(index, e.target.value)}
-                            />
-                            <button type="button" onClick={() => removeSongField(index)}>🗑️</button>
+                        <label>Rating:</label>
+                        <div className="star-rating">
+                            {[1, 2, 3, 4, 5].map(star => (
+                                <span
+                                    key={star}
+                                    onClick={() => setFormData({ ...formData, rating: star })}
+                                    style={{ cursor: 'pointer', fontSize: '24px' }}
+                                >
+                                    {star <= formData.rating ? '★' : '☆'}
+                                </span>
+                            ))}
                         </div>
-                    ))}
-                    <button type="button" onClick={addSongField}>+</button>
+                    </div>
 
-                    <label style={{ marginTop: '20px' }}>Photos:</label>
-                    <input type="file" multiple accept="image/*" onChange={handlePhotoUpload} />
-                    <div>
-                        {photos.map((p, i) => (
-                            <div key={i}>
-                                <img src={p} alt="preview" width="50" />
-                                <button type="button" onClick={() => removePhoto(i)}>x</button>
+                    <div className="form-column">
+                        <label>Songs:</label>
+                        {songs.map((song, index) => (
+                            <div key={index} className="list-item-input">
+                                <span>{index + 1}.</span>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    value={song}
+                                    onChange={(e) => handleSongChange(index, e.target.value)}
+                                />
+                                <button type="button" onClick={() => removeSongField(index)}>🗑️</button>
                             </div>
                         ))}
+                        <button type="button" onClick={addSongField}>+</button>
+
+                        <label style={{ marginTop: '20px' }}>Photos:</label>
+                        <input type="file" multiple accept="image/*" onChange={handlePhotoUpload} />
+                        <div>
+                            {photos.map((p, i) => (
+                                <div key={i}>
+                                    <img src={p} alt="preview" width="50" />
+                                    <button type="button" onClick={() => removePhoto(i)}>x</button>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div>
-                <label>Description:</label>
-                <textarea
-                    className="form-input"
-                    value={formData.description}
-                    onChange={e => setFormData({ ...formData, description: e.target.value })}
-                />
-            </div>
+                <div>
+                    <label>Description:</label>
+                    <textarea
+                        className="form-input"
+                        value={formData.description}
+                        onChange={e => setFormData({ ...formData, description: e.target.value })}
+                    />
+                </div>
 
-            <div className="form-actions">
-                <button type="submit">{isEditMode ? "Update" : "Add"}</button>
-                <button type="button" onClick={() => navigate(-1)}>Cancel</button>
-            </div>
-        </form>
-    </div>
-);
+                <div className="form-actions">
+                    <button type="submit">{isEditMode ? "Update" : "Add"}</button>
+                    <button type="button" onClick={() => navigate(-1)}>Cancel</button>
+                </div>
+            </form>
+        </div>
+    );
 }
