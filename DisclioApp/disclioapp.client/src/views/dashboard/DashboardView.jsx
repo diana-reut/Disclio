@@ -87,7 +87,6 @@ export function DashboardView({
 
                 <div className="dashboard-grid">
 
-                    {/* STATS */}
                     <aside className="stats-column">
                         <div className="dashboard-section stats-card sticky-stats">
                             <StatisticsView fetchRatingStats={fetchRatingStats} fetchSongFrequencyStats={fetchSongFrequencyStats} />
@@ -101,9 +100,9 @@ export function DashboardView({
                             <GridView
                                 cds={cds}
                                 deleteCD={deleteCD}
-                                loadMore={loadMore}
-                                hasMore={hasMore}
-                                loading={loading}
+                                loadMore={loadMore}     
+                                hasMore={hasMore}      
+                                loading={loading}       
                             />
 
                         </section>
