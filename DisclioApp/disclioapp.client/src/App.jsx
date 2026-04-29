@@ -73,23 +73,20 @@ function App() {
         }
     `;
 
-        // --- CRITICAL FIX START ---
-        // Map your string array to an array of objects for the SongInput type
         const sanitizedSongs = (cdData.songs || []).map((song, index) => {
             if (typeof song === 'string') {
                 return {
                     title: song,
-                    duration: "0:00", // Default value since form only provides title
+                    duration: "0:00", 
                     trackNumber: index + 1
                 };
             }
-            return song; // Already an object
+            return song; 
         });
-        // --- CRITICAL FIX END ---
 
         const variables = {
             ...cdData,
-            songs: sanitizedSongs // Use the sanitized array here
+            songs: sanitizedSongs 
         };
 
         if (isUpdate) variables.id = parseInt(id, 10);
@@ -155,8 +152,9 @@ function App() {
             const json = await res.json();
             const statsMap = {};
             json.data.ratingStats.forEach(s => statsMap[s.rating] = s.count);
+            console.log("ALBUM RATINGS: ", statsMap);
             return statsMap;
-        } catch (err) { return {}; }
+        } catch (err) { console.error("Error fetching rating statistics:", err); }
     };
 
     const fetchSongFrequencyStats = async () => {
@@ -168,8 +166,11 @@ function App() {
                 body: JSON.stringify({ query })
             });
             const json = await res.json();
-            return json.data.songFrequencyStats;
-        } catch (err) { return []; }
+            const statsMap = {};
+            json.data.songFrequencyStats.forEach(s => statsMap[s.songCount] = s.numberOfCds)
+            console.log("SONG STATS:", statsMap);
+            return statsMap;
+        } catch (err) { console.error("Error fetching song frequency statistics:", err); }
     };
 
     return (
@@ -193,9 +194,14 @@ function App() {
                 <Route path="/dashboard" element={
                     <ProtectedRoute>
                         <DashboardView
-                            cds={cds} saveCD={saveCD} deleteCD={deleteCD}
+                            cds={cds}
+                            saveCD={saveCD}
+                            deleteCD={deleteCD}
                             fetchRatingStats={fetchRatingStats}
-                            loadMore={loadMore} hasMore={hasMore} loading={loading}
+                            fetchSongFrequencyStats={fetchSongFrequencyStats}
+                            loadMore={loadMore}
+                            hasMore={hasMore}
+                            loading={loading}
                         />
                     </ProtectedRoute>
                 } />

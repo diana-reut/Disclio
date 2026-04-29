@@ -39,7 +39,6 @@ export function SongListView() {
         fetchCdData();
     }, [id]);
 
-    // This handles BOTH adding and updating
     const handleSaveSong = async (songId, title, trackNo) => {
         if (!title.trim()) return;
 
@@ -55,7 +54,7 @@ export function SongListView() {
             body: JSON.stringify({
                 query,
                 variables: {
-                    id: songId ? parseInt(songId) : null, // ID present = Update
+                    id: songId ? parseInt(songId) : null, 
                     cdId: parseInt(id),
                     title: title,
                     trackNumber: trackNo

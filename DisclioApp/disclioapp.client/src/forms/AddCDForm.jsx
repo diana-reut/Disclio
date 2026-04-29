@@ -27,7 +27,6 @@ export function AddCDForm({ saveCD }) {
 
     useEffect(() => {
         if (isEditMode) {
-            // Using GraphQL instead of REST to be consistent with the app
             const query = `query GetCD($id: Int!) { 
                 cd(id: $id) { 
                     title artist category manufacturer year condition rating description photos 
@@ -43,7 +42,6 @@ export function AddCDForm({ saveCD }) {
                 .then(json => {
                     const data = json.data.cd;
                     setFormData({ ...data, year: data.year || '' });
-                    // Convert object array back to string array for the form inputs
                     setSongs(data.songs ? data.songs.map(s => s.title) : []);
                     setPhotos(data.photos || []);
                     setLoading(false);
