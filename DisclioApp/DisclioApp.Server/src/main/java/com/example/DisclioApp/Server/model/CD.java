@@ -15,6 +15,7 @@ public class CD {
     private List<Song> songs;
     private List<String> photos;
 
+
     public void updateCD(CD newCD){
         this.title = newCD.title;
         this.artist = newCD.artist;

@@ -202,6 +202,7 @@ function App() {
                             loadMore={loadMore}
                             hasMore={hasMore}
                             loading={loading}
+                            refresh={refresh}
                         />
                     </ProtectedRoute>
                 } />

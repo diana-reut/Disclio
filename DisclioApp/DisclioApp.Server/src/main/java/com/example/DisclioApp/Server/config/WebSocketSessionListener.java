@@ -1,23 +1,47 @@
 package com.example.DisclioApp.Server.config;
 
-import com.example.DisclioApp.Server.controller.CDGeneratorGraphQLController;
+import com.example.DisclioApp.Server.service.CDGeneratorService;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.messaging.SessionConnectEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 @Component
-public class WebSocketDisconnectListener {
+public class WebSocketSessionListener {
 
-    private final CDGeneratorGraphQLController generatorController;
+    private final CDGeneratorService generatorService;
 
-    public WebSocketDisconnectListener(CDGeneratorGraphQLController generatorController) {
-        this.generatorController = generatorController;
+    // sessionId -> active session
+    private final ConcurrentMap<String, Boolean> sessions = new ConcurrentHashMap<>();
+
+    public WebSocketSessionListener(CDGeneratorService generatorService) {
+        this.generatorService = generatorService;
+    }
+
+    @EventListener
+    public void handleConnect(SessionConnectEvent event) {
+        String sessionId = (String) event.getMessage()
+                .getHeaders()
+                .get("simpSessionId");
+
+        if (sessionId != null) {
+            sessions.put(sessionId, true);
+            System.out.println("CONNECTED: " + sessionId);
+        }
     }
 
     @EventListener
     public void handleDisconnect(SessionDisconnectEvent event) {
-        System.out.println("Client disconnected; stopping generator");
+        String sessionId = event.getSessionId();
+        sessions.remove(sessionId);
 
-        generatorController.forceStop();
+        // Optional: Add a slight delay check here
+        // to see if a new session connected immediately (refresh case)
+        if (sessions.isEmpty()) {
+            generatorService.stop();
+        }
     }
 }
