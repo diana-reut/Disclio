@@ -6,7 +6,7 @@ export function useCDSocket(onNewCD) {
     useEffect(() => {
 
         const client = new Client({
-            brokerURL: "ws://localhost:8080/ws",
+            brokerURL: `ws://${window.location.hostname}:8080/ws`,
             reconnectDelay: 3000,
             debug: (msg) => console.log("STOMP:", msg),
         });

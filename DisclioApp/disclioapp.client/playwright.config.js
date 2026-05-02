@@ -13,7 +13,7 @@ export default defineConfig({
     /* Global settings for all tests */
     use: {
         /* FIX 1: Using https to match your Vite server */
-        baseURL: 'https://localhost:55629',
+        baseURL: `https://${window.location.hostname}:55629`,
 
         /* FIX 2: Ignore self-signed certificate errors in the browser */
         ignoreHTTPSErrors: true,
@@ -40,7 +40,7 @@ export default defineConfig({
     /* Run your local dev server before starting the tests */
     webServer: {
         command: 'npm run dev',
-        url: 'https://localhost:55629',
+        url: `https://${window.location.hostname}:55629`,
         reuseExistingServer: !process.env.CI,
         timeout: 120 * 1000,
         /* FIX 3: This is the specific line you needed for the terminal spam */

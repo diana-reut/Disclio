@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -13,6 +13,7 @@
   "dependencies": {
     "@stomp/stompjs": "^7.3.0",
     "framer-motion": "^12.38.0",
+    "idb": "^8.0.3",
     "js-cookie": "^3.0.5",
     "react": "^18.2.3",
     "react-dom": "^18.2.3",

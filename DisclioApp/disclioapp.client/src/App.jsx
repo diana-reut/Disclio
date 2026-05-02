@@ -35,7 +35,7 @@ function App() {
         refresh
     } = useCDPagination(10);
 
-    const GRAPHQL_ENDPOINT = 'http://localhost:8080/graphql';
+    const GRAPHQL_ENDPOINT = `http://${window.location.hostname}:8080/graphql`;
 
     const deleteCD = async (id) => {
         const query = `

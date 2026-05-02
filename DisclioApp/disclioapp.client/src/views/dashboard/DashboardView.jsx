@@ -20,7 +20,7 @@ export function DashboardView({
 
     useEffect(() => {
         stompClient.current = new Client({
-            brokerURL: 'ws://localhost:8080/ws',
+            brokerURL: `ws://${window.location.hostname}:8080/ws`,
             onConnect: () => {
                 console.log("Connected");
                 stompClient.current.subscribe('/topic/cds', () => {
@@ -42,7 +42,7 @@ export function DashboardView({
             : `mutation { startGenerator }`;
 
         try {
-            const response = await fetch('http://localhost:8080/graphql', {
+            const response = await fetch(`http://${window.location.hostname}:8080/graphql`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: mutation }),

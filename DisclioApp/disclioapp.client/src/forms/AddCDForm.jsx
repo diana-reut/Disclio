@@ -33,7 +33,7 @@ export function AddCDForm({ saveCD }) {
                     songs { title } 
                 } 
             }`;
-            fetch(`http://localhost:8080/graphql`, {
+            fetch(`http://${window.location.hostname}:8080/graphql`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ query, variables: { id: parseInt(id) } })

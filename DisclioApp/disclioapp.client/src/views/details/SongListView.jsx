@@ -12,7 +12,7 @@ export function SongListView() {
     const [isEditing, setIsEditing] = useState(false);
     const [newSongTitle, setNewSongTitle] = useState("");
 
-    const GRAPHQL_ENDPOINT = 'http://localhost:8080/graphql';
+    const GRAPHQL_ENDPOINT = `http://${window.location.hostname}:8080/graphql`;
 
     const fetchCdData = () => {
         const query = `
