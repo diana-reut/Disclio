@@ -55,6 +55,14 @@ export function GridView({
                 >
                     Switch to Tabular View
                 </button>
+
+                <button
+                    className="small-btn"
+                    onClick={() => navigate('/chat')}
+                >
+                    Chat
+                </button>
+
             </div>
 
             <div className="album-grid">

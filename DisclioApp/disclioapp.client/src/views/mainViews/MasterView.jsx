@@ -41,6 +41,12 @@ export function MasterView({
                 <div className="table-actions-header">
                     <button className="small-btn" onClick={() => navigate('/stats')}>Stats</button>
                     <button className="small-btn" onClick={() => navigate('/grid-view')}>Grid View</button>
+                    <button
+                        className="small-btn"
+                        onClick={() => navigate('/chat')}
+                    >
+                        Chat
+                    </button>
                 </div>
 
                 <table>
