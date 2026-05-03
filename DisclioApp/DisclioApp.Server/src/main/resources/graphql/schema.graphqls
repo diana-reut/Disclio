@@ -79,3 +79,25 @@ type Mutation {
 
 type RatingStat { rating: Int, count: Int }
 type SongFrequencyStat { songCount: Int, numberOfCds: Int }
+
+extend type Query {
+    login(username: String!, password: String!): User
+}
+
+extend type Mutation {
+    signup(
+        username: String!,
+        password: String!,
+        firstName: String,
+        lastName: String,
+        email: String
+    ): User
+}
+
+type User {
+    id: ID
+    username: String
+    firstName: String
+    lastName: String
+    email: String
+}

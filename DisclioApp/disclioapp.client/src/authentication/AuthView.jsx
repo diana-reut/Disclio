@@ -4,17 +4,20 @@ import './AuthView.css';
 
 export function AuthView() {
     const navigate = useNavigate();
-
     const location = useLocation();
     const [mode, setMode] = useState(location.state?.initialMode || 'login');
 
     const [formData, setFormData] = useState({
-        username: '', password: '', firstName: '', lastName: '', email: '', confirmPassword: ''
+        username: '',
+        password: '',
+        firstName: '',
+        lastName: '',
+        email: '',
+        confirmPassword: ''
     });
     const [errors, setErrors] = useState({});
     const [isShaking, setIsShaking] = useState(false);
 
-    // Clears sensitive data when jumping between Login and Signup
     const switchMode = (newMode) => {
         setFormData({
             username: '', password: '', firstName: '', lastName: '',
@@ -35,7 +38,8 @@ export function AuthView() {
         setTimeout(() => setIsShaking(false), 500);
     };
 
-    const handleAction = (nextMode, fieldsToValidate) => {
+    const handleAction = async (nextMode, fieldsToValidate) => {
+        // 1. Local Validation
         let newErrors = {};
         fieldsToValidate.forEach(field => {
             if (!formData[field]) newErrors[field] = true;
@@ -56,18 +60,76 @@ export function AuthView() {
             return;
         }
 
-        if (nextMode === 'master') {
-            const days = 7;
-            const expires = new Date(Date.now() + days * 864e5).toUTCString();
+        // 2. Handle Database Operations (Signup)
+        if (nextMode === 'success') {
+            const query = `mutation {
+                signup(
+                    username: "${formData.username}", 
+                    password: "${formData.password}", 
+                    firstName: "${formData.firstName}", 
+                    lastName: "${formData.lastName}", 
+                    email: "${formData.email}"
+                ) { id username }
+            }`;
 
-            document.cookie = `username=${encodeURIComponent(formData.username)}; expires=${expires}; path=/; SameSite=Lax`;
+            try {
+                const response = await fetch(`http://${window.location.hostname}:8080/graphql`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
 
-            document.cookie = `isLoggedIn=true; expires=${expires}; path=/; SameSite=Lax`;
-            navigate('/master-view');
-        } else {
-            setMode(nextMode);
-            setErrors({});
+                const result = await response.json();
+                if (result.data && result.data.signup) {
+                    setMode('success');
+                    setErrors({});
+                } else {
+                    console.error("Signup failed - user likely exists");
+                    triggerShake();
+                }
+            } catch (err) {
+                console.error("Server connection error", err);
+                triggerShake();
+            }
+            return; // Exit function
         }
+
+        // 3. Handle Database Operations (Login)
+        if (nextMode === 'master') {
+            const query = `{
+                login(username: "${formData.username}", password: "${formData.password}") {
+                    username firstName
+                }
+            }`;
+
+            try {
+                const response = await fetch(`http://${window.location.hostname}:8080/graphql`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+
+                const result = await response.json();
+                if (result.data && result.data.login) {
+                    const days = 7;
+                    const expires = new Date(Date.now() + days * 864e5).toUTCString();
+                    document.cookie = `username=${encodeURIComponent(result.data.login.username)}; expires=${expires}; path=/;`;
+                    document.cookie = `isLoggedIn=true; expires=${expires}; path=/;`;
+                    navigate('/master-view');
+                } else {
+                    setErrors({ username: true, password: true });
+                    triggerShake();
+                }
+            } catch (err) {
+                console.error("Login connection error", err);
+                triggerShake();
+            }
+            return; // Exit function
+        }
+
+        // 4. Handle Navigation between signup steps
+        setMode(nextMode);
+        setErrors({});
     };
 
     const renderContent = () => {
@@ -120,6 +182,10 @@ export function AuthView() {
                         <h2 className="auth-title">SIGN UP</h2>
                         <div className="auth-form-content">
                             <div className="input-group">
+                                <label>Choose Username</label>
+                                <input name="username" value={formData.username} className={getCls('username')} type="text" onChange={handleChange} autoComplete="username" />
+                            </div>
+                            <div className="input-group">
                                 <label>Password</label>
                                 <input name="password" value={formData.password} className={getCls('password')} type="password" onChange={handleChange} autoComplete="new-password" />
                             </div>
@@ -129,7 +195,7 @@ export function AuthView() {
                                 {errors.confirmPassword && <small className="error-text">Passwords do not match</small>}
                             </div>
                         </div>
-                        <button className="auth-btn main" onClick={() => handleAction('success', ['password', 'confirmPassword'])}>CONTINUE</button>
+                        <button className="auth-btn main" onClick={() => handleAction('success', ['username', 'password', 'confirmPassword'])}>SIGN UP</button>
                     </div>
                 );
             case 'success':
