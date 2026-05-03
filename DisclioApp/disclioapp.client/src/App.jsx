@@ -6,6 +6,7 @@ import { DetailsView } from './views/details/DetailsView';
 import { MasterView } from './views/mainViews/MasterView';
 import { GridView } from './views/mainViews/GridView';
 import { SongListView } from './views/details/SongListView';
+import { ChatView } from './views/chatView/ChatView';
 import { StatisticsView } from './views/statistics/StatisticsView';
 import { DashboardView } from './views/dashboard/DashboardView';
 import { LandingPage } from './presentation/LandingPage';
@@ -281,6 +282,8 @@ function App() {
                         />
                     </ProtectedRoute>
                 } />
+
+                <Route path="/chat" element={<ProtectedRoute><ChatView /></ProtectedRoute>} />
 
                 <Route path="/add" element={<ProtectedRoute><AddCDForm saveCD={saveCD} /></ProtectedRoute>} />
                 <Route path="/edit/:id" element={<ProtectedRoute><AddCDForm saveCD={saveCD} /></ProtectedRoute>} />

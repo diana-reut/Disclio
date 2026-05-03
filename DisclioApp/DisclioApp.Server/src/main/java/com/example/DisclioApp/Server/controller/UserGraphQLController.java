@@ -1,18 +1,27 @@
 package com.example.DisclioApp.Server.controller;
 
+import com.example.DisclioApp.Server.model.ChatMessage;
 import com.example.DisclioApp.Server.model.User;
 import com.example.DisclioApp.Server.repository.UserRepository;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 
+import java.util.List;
+
 @Controller
 public class UserGraphQLController {
     private final UserRepository userRepository;
+    private final MongoTemplate mongoTemplate;
 
-    public UserGraphQLController(UserRepository userRepository) {
+    public UserGraphQLController(UserRepository userRepository, MongoTemplate mongoTemplate) {
         this.userRepository = userRepository;
+        this.mongoTemplate = mongoTemplate;
     }
 
     @QueryMapping
@@ -45,4 +54,22 @@ public class UserGraphQLController {
             throw new RuntimeException("Could not create user: " + e.getMessage());
         }
     }
+
+    @QueryMapping
+    public boolean userExists(@Argument String username) {
+        return userRepository.findByUsername(username).isPresent();
+    }
+
+    @QueryMapping
+    public List<ChatMessage> getChatHistory(@Argument String user1, @Argument String user2) {
+        // This looks for messages between these two people in NoSQL
+        return mongoTemplate.find(
+                Query.query(new Criteria().orOperator(
+                        Criteria.where("sender").is(user1).and("recipient").is(user2),
+                        Criteria.where("sender").is(user2).and("recipient").is(user1)
+                )).with(Sort.by(Sort.Direction.ASC, "timestamp")),
+                ChatMessage.class
+        );
+    }
+
 }

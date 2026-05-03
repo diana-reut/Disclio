@@ -82,6 +82,8 @@ type SongFrequencyStat { songCount: Int, numberOfCds: Int }
 
 extend type Query {
     login(username: String!, password: String!): User
+    userExists(username: String!): Boolean
+    getChatHistory(user1: String!, user2: String!): [ChatMessage]
 }
 
 extend type Mutation {
@@ -100,4 +102,11 @@ type User {
     firstName: String
     lastName: String
     email: String
+}
+
+type ChatMessage {
+    sender: String
+    content: String
+    recipient: String
+    timestamp: String
 }
