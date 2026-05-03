@@ -1,3 +1,4 @@
+import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import { AddCDForm } from './forms/AddCDForm';
@@ -10,6 +11,7 @@ import { DashboardView } from './views/dashboard/DashboardView';
 import { LandingPage } from './presentation/LandingPage';
 import { AuthView } from './authentication/AuthView';
 import { useCDPagination } from './hooks/useCDPagination';
+import { addToQueue, getQueue, removeFromQueue } from './hooks/offlineSupport.js';
 
 const getCookie = (name) => {
     const value = `; ${document.cookie}`;
@@ -58,6 +60,68 @@ function App() {
         }
     };
 
+    const syncOfflineData = async () => {
+        console.log("Attempting to sync offline data...");
+
+        try {
+            const queue = await getQueue();
+
+            if (queue.length === 0) {
+                console.log("No offline data to sync.");
+                return;
+            }
+
+            queue.sort((a, b) => a.timestamp - b.timestamp);
+
+            for (const item of queue) {
+                try {
+                    const response = await fetch(GRAPHQL_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query: item.query, variables: item.variables }),
+                    });
+
+                    const json = await response.json();
+
+                    if (!json.errors) {
+                        await removeFromQueue(item.queueId);
+                        console.log(`Successfully synced queue item: ${item.queueId}`);
+                    } else {
+                        console.error("Server rejected queued item:", json.errors);
+                        // You might want to handle persistent errors here so they don't block the queue forever
+                    }
+                } catch (err) {
+                    console.error("Failed to sync item (still offline?):", err);
+                    break;
+                }
+            }
+
+            refresh();
+
+        } catch (error) {
+            console.error("Error accessing IndexedDB during sync:", error);
+        }
+    };
+
+    useEffect(() => {
+        const handleOnline = () => {
+            console.log("Back online! Triggering sync...");
+            // If you need to trigger a React state update after syncing, 
+            // you can easily do it from here!
+            syncOfflineData();
+        };
+
+        if (navigator.onLine) {
+            syncOfflineData();
+        }
+
+        window.addEventListener('online', handleOnline);
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+        };
+    }, []);
+
     const saveCD = async (cdData, id) => {
         const isUpdate = !!id;
 
@@ -93,6 +157,15 @@ function App() {
         variables.year = variables.year ? parseInt(variables.year, 10) : null;
         variables.rating = variables.rating ? parseInt(variables.rating, 10) : null;
 
+        const payload = { query, variables };
+
+        if (!navigator.onLine) {
+            console.log("App is offline. Queuing request...");
+            await addToQueue(payload);
+            alert("You are offline. Your changes have been saved locally and will sync when you reconnect.");
+            return;
+        }
+
         try {
             const response = await fetch(GRAPHQL_ENDPOINT, {
                 method: 'POST',
@@ -109,7 +182,9 @@ function App() {
             }
             refresh();
         } catch (err) {
-            console.error("Network error:", err);
+            console.error("Network error detected. Saving to IndexedDB:", err);
+            await addToQueue(payload);
+            alert("Network disconnected. Your CD was saved offline and will sync automatically.");
         }
     };
 
