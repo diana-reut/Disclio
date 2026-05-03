@@ -59,7 +59,7 @@ public class CDGeneratorService {
 
                     for (int i = 1; i <= numberOfSongs; i++) {
                         Song song = new Song();
-                        song.setCdId(cd.getId());
+                        song.setCd(cd);
                         song.setTitle(faker.music().instrument() + " Track");
                         song.setDuration("3:0" + faker.number().numberBetween(0, 9));
                         song.setTrackNumber(i);

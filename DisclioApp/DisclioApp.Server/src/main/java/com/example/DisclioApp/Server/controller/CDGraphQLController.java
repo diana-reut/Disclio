@@ -119,13 +119,16 @@ public class CDGraphQLController {
             @Argument String duration,
             @Argument Integer trackNumber
     ) {
+        CD cd = cdService.getCDByIndex(cdId);
+        if (cd == null) throw new RuntimeException("CD not found");
+
         Song song = new Song();
 
         if (id != null) {
             song.setId(id);
         }
 
-        song.setCdId(cdId);
+        song.setCd(cd);
         song.setTitle(title);
         song.setDuration(duration);
         song.setTrackNumber(trackNumber != null ? trackNumber : 0);
@@ -155,9 +158,11 @@ public class CDGraphQLController {
 
     private void handleSongUpdate(int cdId, List<Map<String, Object>> songMaps) {
         if (songMaps != null) {
+            CD cd = cdService.getCDByIndex(cdId);
+            if (cd == null) return;
             for (Map<String, Object> map : songMaps) {
                 Song song = new Song();
-                song.setCdId(cdId);
+                song.setCd(cd);
                 song.setTitle((String) map.get("title"));
                 song.setDuration((String) map.get("duration"));
                 song.setTrackNumber(map.get("trackNumber") != null ? (Integer) map.get("trackNumber") : 0);

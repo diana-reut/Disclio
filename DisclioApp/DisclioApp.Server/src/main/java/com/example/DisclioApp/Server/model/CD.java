@@ -1,9 +1,15 @@
 package com.example.DisclioApp.Server.model;
 
 import java.util.List;
+import jakarta.persistence.*;
 
+@Entity
+@Table(name = "cds")
 public class CD {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
+
     private String title;
     private String artist;
     private String category;
@@ -11,8 +17,17 @@ public class CD {
     private Integer year;
     private String condition;
     private Integer rating;
+
+    @Column(columnDefinition = "TEXT")
     private String description;
+
+    // 1-to-Many Relationship: One CD has many Songs
+    @OneToMany(mappedBy = "cd", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Song> songs;
+
+    @ElementCollection
+    @CollectionTable(name = "cd_photos", joinColumns = @JoinColumn(name = "cd_id"))
+    @Column(name = "photo_url")
     private List<String> photos;
 
 
@@ -25,8 +40,14 @@ public class CD {
         this.condition = newCD.condition;
         this.rating = newCD.rating;
         this.description = newCD.description;
-        this.songs = newCD.songs;
-        this.photos = newCD.photos;
+        if (this.songs != null && newCD.songs != null) {
+            this.songs.clear();
+            this.songs.addAll(newCD.songs);
+        }
+        if (this.photos != null && newCD.photos != null) {
+            this.photos.clear();
+            this.photos.addAll(newCD.photos);
+        }
     }
 
     public String getTitle() {
