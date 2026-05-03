@@ -2,6 +2,7 @@ package com.example.DisclioApp.Server.controller;
 
 import com.example.DisclioApp.Server.service.CDGeneratorService;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 
 @Controller
@@ -14,12 +15,14 @@ public class CDGeneratorGraphQLController {
     }
 
     @MutationMapping
+    @PreAuthorize("hasAuthority('START_GENERATOR')")
     public String startGenerator() {
         System.out.println("generator started");
         return generatorService.start();
     }
 
     @MutationMapping
+    @PreAuthorize("hasAuthority('STOP_GENERATOR')")
     public String stopGenerator() {
         System.out.println("generator stopped");
         return generatorService.stop();

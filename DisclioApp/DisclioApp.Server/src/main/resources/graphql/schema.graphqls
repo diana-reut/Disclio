@@ -96,12 +96,18 @@ extend type Mutation {
     ): User
 }
 
+type Role {
+    id: Int
+    name: String
+}
+
 type User {
-    id: ID
+    id: Int
     username: String
     firstName: String
     lastName: String
     email: String
+    role: Role
 }
 
 type ChatMessage {
@@ -109,4 +115,32 @@ type ChatMessage {
     content: String
     recipient: String
     timestamp: String
+}
+
+type Log {
+    id: Int
+    userId:Int
+    groupRole: String
+    actionInformation: String
+    timestamp: String
+}
+
+extend type Query {
+    getSystemLogs: [Log]
+}
+
+extend type Mutation {
+    createManualLog(userId: Int!, role: String!, action: String!): String
+}
+
+type SuspiciousUser {
+    id: Int
+    userId: Int
+    username: String
+    reason: String
+    detectedAt: String
+}
+
+extend type Query {
+    getObservationList: [SuspiciousUser]
 }

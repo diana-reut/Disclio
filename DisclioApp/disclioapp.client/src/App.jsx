@@ -9,6 +9,7 @@ import { SongListView } from './views/details/SongListView';
 import { ChatView } from './views/chatView/ChatView';
 import { StatisticsView } from './views/statistics/StatisticsView';
 import { DashboardView } from './views/dashboard/DashboardView';
+import AdminDashboard from './views/dashboard/AdminDashboard';
 import { LandingPage } from './presentation/LandingPage';
 import { AuthView } from './authentication/AuthView';
 import { useCDPagination } from './hooks/useCDPagination';
@@ -28,6 +29,13 @@ function ProtectedRoute({ children }) {
     }
     return children;
 }
+
+const AdminRoute = ({ children, currentUser }) => {
+    if (!currentUser || currentUser.role !== 'ADMIN') {
+        return <Navigate to="/" />;
+    }
+    return children;
+};
 
 function App() {
     const {
@@ -50,6 +58,7 @@ function App() {
             const response = await fetch(GRAPHQL_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({
                     query,
                     variables: { id: parseInt(id, 10) }
@@ -79,6 +88,7 @@ function App() {
                     const response = await fetch(GRAPHQL_ENDPOINT, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
                         body: JSON.stringify({ query: item.query, variables: item.variables }),
                     });
 
@@ -171,6 +181,7 @@ function App() {
             const response = await fetch(GRAPHQL_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ query, variables }),
             });
 
@@ -209,6 +220,7 @@ function App() {
             await fetch(GRAPHQL_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ query, variables }),
             });
             refresh();
@@ -223,6 +235,7 @@ function App() {
             const res = await fetch(GRAPHQL_ENDPOINT, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: 'include',
                 body: JSON.stringify({ query })
             });
             const json = await res.json();
@@ -239,6 +252,7 @@ function App() {
             const res = await fetch(GRAPHQL_ENDPOINT, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: 'include',
                 body: JSON.stringify({ query })
             });
             const json = await res.json();
@@ -249,9 +263,22 @@ function App() {
         } catch (err) { console.error("Error fetching song frequency statistics:", err); }
     };
 
+    const [currentUser, setCurrentUser] = useState(() => {
+        const savedUser = localStorage.getItem('currentUser');
+        return savedUser ? JSON.parse(savedUser) : null;
+    });
+
     return (
         <div className="container">
             <Routes>
+                <Route
+                    path="/admin"
+                    element={
+                        <AdminRoute currentUser={currentUser}>
+                            <AdminDashboard />
+                        </AdminRoute>
+                    }
+                />
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/auth" element={<AuthView />} />
 

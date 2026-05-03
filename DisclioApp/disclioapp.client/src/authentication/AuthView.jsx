@@ -76,6 +76,7 @@ export function AuthView() {
                 const response = await fetch(`http://${window.location.hostname}:8080/graphql`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ query })
                 });
 
@@ -99,6 +100,9 @@ export function AuthView() {
             const query = `{
                 login(username: "${formData.username}", password: "${formData.password}") {
                     username firstName
+                    role {
+                        name
+                    }
                 }
             }`;
 
@@ -106,15 +110,25 @@ export function AuthView() {
                 const response = await fetch(`http://${window.location.hostname}:8080/graphql`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ query })
                 });
 
                 const result = await response.json();
+                console.log("RAW BACKEND RESPONSE:", JSON.stringify(result, null, 2));
                 if (result.data && result.data.login) {
+                    const userData = result.data.login;
                     const days = 7;
                     const expires = new Date(Date.now() + days * 864e5).toUTCString();
+
+                    localStorage.setItem('currentUser', JSON.stringify({
+                        username: userData.username,
+                        role: userData.role?.name || 'USER'
+                    }));
+
                     document.cookie = `username=${encodeURIComponent(result.data.login.username)}; expires=${expires}; path=/;`;
                     document.cookie = `isLoggedIn=true; expires=${expires}; path=/;`;
+                    
                     navigate('/master-view');
                 } else {
                     setErrors({ username: true, password: true });

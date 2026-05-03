@@ -26,6 +26,7 @@ export function SongListView() {
         fetch(GRAPHQL_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ query, variables: { id: parseInt(id, 10) } }),
         })
             .then(res => res.json())
@@ -51,6 +52,7 @@ export function SongListView() {
         await fetch(GRAPHQL_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({
                 query,
                 variables: {
@@ -69,6 +71,7 @@ export function SongListView() {
         await fetch(GRAPHQL_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ query, variables: { id: parseInt(songId) } }),
         });
         fetchCdData();

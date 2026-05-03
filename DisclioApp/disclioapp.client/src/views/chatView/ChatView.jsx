@@ -49,6 +49,7 @@ export function ChatView() {
             const response = await fetch(`http://${window.location.hostname}:8080/graphql`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ query })
             });
             const result = await response.json();
@@ -66,6 +67,7 @@ export function ChatView() {
             const response = await fetch(`http://${window.location.hostname}:8080/graphql`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ query })
             });
             const result = await response.json();

@@ -45,6 +45,7 @@ export function DashboardView({
             const response = await fetch(`http://${window.location.hostname}:8080/graphql`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ query: mutation }),
             });
 

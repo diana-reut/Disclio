@@ -5,6 +5,7 @@ import com.example.DisclioApp.Server.model.Song;
 import com.example.DisclioApp.Server.service.CDService;
 import com.example.DisclioApp.Server.service.SongService;
 import org.springframework.graphql.data.method.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 
 import java.util.List;
@@ -33,26 +34,31 @@ public class CDGraphQLController {
 
 
     @QueryMapping
+    @PreAuthorize("hasAuthority('READ_CD')")
     public List<CD> cds() {
         return cdService.getAllCDs();
     }
 
     @QueryMapping
+    @PreAuthorize("hasAuthority('READ_CD')")
     public CD cd(@Argument int id) {
         return cdService.getCDByIndex(id);
     }
 
     @QueryMapping
+    @PreAuthorize("hasAuthority('READ_CD')")
     public List<CD> pagedCds(@Argument int page, @Argument int size) {
         return cdService.getPagedCDs(page, size);
     }
 
     @QueryMapping
+    @PreAuthorize("hasAuthority('READ_CD')")
     public int totalCount() {
         return cdService.count();
     }
 
     @QueryMapping
+    @PreAuthorize("hasAuthority('VIEW_STATISTICS')")
     public List<RatingStat> ratingStats() {
         return cdService.getRatingDistribution().entrySet().stream()
                 .map(e -> new RatingStat(e.getKey(), e.getValue()))
@@ -60,6 +66,7 @@ public class CDGraphQLController {
     }
 
     @QueryMapping
+    @PreAuthorize("hasAuthority('VIEW_STATISTICS')")
     public List<SongFrequencyStat> songFrequencyStats() {
         return songService.getCdCountBySongFrequency().entrySet().stream()
                 .map(e -> new SongFrequencyStat(e.getKey(), e.getValue()))
@@ -67,6 +74,7 @@ public class CDGraphQLController {
     }
 
     @MutationMapping
+    @PreAuthorize("hasAuthority('CREATE_CD')")
     public String addCD(
             @Argument String title, @Argument String artist,
             @Argument String category, @Argument String manufacturer,
@@ -84,6 +92,7 @@ public class CDGraphQLController {
     }
 
     @MutationMapping
+    @PreAuthorize("hasAuthority('UPDATE_CD')")
     public CD updateCD(
             @Argument int id,
             @Argument String title, @Argument String artist,
@@ -106,12 +115,14 @@ public class CDGraphQLController {
     }
 
     @MutationMapping
+    @PreAuthorize("hasAuthority('DELETE_CD')")
     public String deleteCD(@Argument int id) {
         CD deleted = cdService.deleteCD(id);
         return deleted != null ? "Deleted" : "Not found";
     }
 
     @MutationMapping
+    @PreAuthorize("hasAuthority('CREATE_SONG')")
     public Song addSong(
             @Argument Integer id,
             @Argument int cdId,
@@ -137,6 +148,7 @@ public class CDGraphQLController {
     }
 
     @MutationMapping
+    @PreAuthorize("hasAuthority('DELETE_SONG')")
     public boolean deleteSong(@Argument int id) {
         return songService.deleteSong(id);
     }

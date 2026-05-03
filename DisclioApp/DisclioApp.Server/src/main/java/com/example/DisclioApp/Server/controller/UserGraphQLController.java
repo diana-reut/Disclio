@@ -1,7 +1,9 @@
 package com.example.DisclioApp.Server.controller;
 
 import com.example.DisclioApp.Server.model.ChatMessage;
+import com.example.DisclioApp.Server.model.Role;
 import com.example.DisclioApp.Server.model.User;
+import com.example.DisclioApp.Server.repository.RoleRepository;
 import com.example.DisclioApp.Server.repository.UserRepository;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -17,10 +19,12 @@ import java.util.List;
 @Controller
 public class UserGraphQLController {
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final MongoTemplate mongoTemplate;
 
-    public UserGraphQLController(UserRepository userRepository, MongoTemplate mongoTemplate) {
+    public UserGraphQLController(UserRepository userRepository, RoleRepository roleRepository, MongoTemplate mongoTemplate) {
         this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
         this.mongoTemplate = mongoTemplate;
     }
 
@@ -45,12 +49,16 @@ public class UserGraphQLController {
             user.setLastName(lastName);
             user.setEmail(email);
 
+            Role defaultRole = roleRepository.findByName("USER")
+                    .orElseThrow(() -> new RuntimeException("Error: Default role 'USER' is missing from the database."));
+
+            user.setRole(defaultRole);
+
             User savedUser = userRepository.save(user);
             System.out.println("User saved successfully: " + savedUser.getId());
             return savedUser;
         } catch (Exception e) {
             System.err.println("Signup error: " + e.getMessage());
-            // This ensures GraphQL returns a valid error object instead of crashing the stream
             throw new RuntimeException("Could not create user: " + e.getMessage());
         }
     }

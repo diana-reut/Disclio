@@ -36,6 +36,7 @@ export function AddCDForm({ saveCD }) {
             fetch(`http://${window.location.hostname}:8080/graphql`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: 'include',
                 body: JSON.stringify({ query, variables: { id: parseInt(id) } })
             })
                 .then(res => res.json())

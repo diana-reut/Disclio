@@ -36,6 +36,7 @@ export function useCDPagination(pageSize = 5) {
         const res = await fetch(`http://${window.location.hostname}:8080/graphql`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: 'include',
             body: JSON.stringify({
                 query,
                 variables: {

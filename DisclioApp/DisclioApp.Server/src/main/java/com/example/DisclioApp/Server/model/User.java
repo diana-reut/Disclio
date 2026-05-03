@@ -7,7 +7,7 @@ import jakarta.persistence.*;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private int id;
 
     @Column(unique = true)
     private String username;
@@ -15,6 +15,13 @@ public class User {
     private String firstName;
     private String lastName;
     private String email;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
+    private Role role;
+
+    public Role getRole() { return role; }
+    public void setRole(Role role) { this.role = role; }
 
     public User() {}
 
@@ -47,7 +54,7 @@ public class User {
         this.email = email;
     }
 
-    public Long getId() {
+    public Integer getId() {
         return id;
     }
 }
