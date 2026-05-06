@@ -52,10 +52,12 @@ public class CDService {
     public Map<Integer, Long> getRatingDistribution() {
         // Fetching stats directly using the custom repository method we discussed
         List<Object[]> stats = cdRepository.getRatingStats();
-        return stats.stream().collect(Collectors.toMap(
-                s -> (Integer) s[0],
-                s -> (Long) s[1]
-        ));
+        return stats.stream()
+                .filter(s -> s[0] != null)
+                .collect(Collectors.toMap(
+                        s -> ((Number) s[0]).intValue(),
+                        s -> ((Number) s[1]).longValue()
+                ));
     }
 
     public List<CD> getPagedCDs(int page, int size) {

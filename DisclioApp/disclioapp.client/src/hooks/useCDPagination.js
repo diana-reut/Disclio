@@ -1,42 +1,58 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-export function useCDPagination(pageSize = 5) {
-    const [cds, setCds] = useState([]);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalCount, setTotalCount] = useState(0);
-    const [loading, setLoading] = useState(false);
+const CDS_CACHE_KEY = "cached_cds";
+const CDS_TOTAL_KEY = "cached_cds_total";
 
+export function useCDPagination(pageSize = 5) {
+    const [cds, setCds] = useState(() => {
+        const cached = localStorage.getItem(CDS_CACHE_KEY);
+        return cached ? JSON.parse(cached) : [];
+    });
+
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const [totalCount, setTotalCount] = useState(() => {
+        const cachedTotal = localStorage.getItem(CDS_TOTAL_KEY);
+        return cachedTotal ? Number(cachedTotal) : 0;
+    });
+
+    const [loading, setLoading] = useState(false);
     const prefetchCache = useRef(null);
+
+    const saveCache = (items, total) => {
+        localStorage.setItem(CDS_CACHE_KEY, JSON.stringify(items));
+        localStorage.setItem(CDS_TOTAL_KEY, String(total));
+    };
 
     const fetchPageFromServer = useCallback(async (page) => {
         const query = `
-    query GetPagedCDs($page: Int!, $size: Int!) {
-        pagedCds(page: $page, size: $size) {
-            id
-            title
-            artist
-            category
-            manufacturer
-            year
-            condition
-            rating
-            description
-            photos
-            songs {        
-                id
-                title
-                duration
-                trackNumber
+            query GetPagedCDs($page: Int!, $size: Int!) {
+                pagedCds(page: $page, size: $size) {
+                    id
+                    title
+                    artist
+                    category
+                    manufacturer
+                    year
+                    condition
+                    rating
+                    description
+                    photos
+                    songs {
+                        id
+                        title
+                        duration
+                        trackNumber
+                    }
+                }
+                totalCount
             }
-        }
-        totalCount
-    }
-`;
+        `;
 
         const res = await fetch(`http://${window.location.hostname}:8080/graphql`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            credentials: 'include',
+            credentials: "include",
             body: JSON.stringify({
                 query,
                 variables: {
@@ -61,11 +77,15 @@ export function useCDPagination(pageSize = 5) {
 
     const loadInitialData = useCallback(async () => {
         setLoading(true);
+
         try {
             const initialData = await fetchPageFromServer(1);
+
             setCds(initialData.items);
             setTotalCount(initialData.total);
             setCurrentPage(1);
+
+            saveCache(initialData.items, initialData.total);
 
             const calculatedTotalPages = Math.ceil(initialData.total / pageSize);
 
@@ -74,6 +94,17 @@ export function useCDPagination(pageSize = 5) {
             }
         } catch (err) {
             console.error("Failed to load initial CDs:", err);
+
+            const cached = localStorage.getItem(CDS_CACHE_KEY);
+            const cachedTotal = localStorage.getItem(CDS_TOTAL_KEY);
+
+            if (cached) {
+                const cachedItems = JSON.parse(cached);
+                setCds(cachedItems);
+                setTotalCount(cachedTotal ? Number(cachedTotal) : cachedItems.length);
+                setCurrentPage(Math.ceil(cachedItems.length / pageSize) || 1);
+                console.log("Loaded CDs from local cache.");
+            }
         } finally {
             setLoading(false);
         }
@@ -93,6 +124,7 @@ export function useCDPagination(pageSize = 5) {
 
         try {
             let newData;
+
             if (prefetchCache.current) {
                 newData = prefetchCache.current;
                 prefetchCache.current = null;
@@ -103,8 +135,14 @@ export function useCDPagination(pageSize = 5) {
             setCds(prev => {
                 const existingIds = new Set(prev.map(cd => cd.id));
                 const filtered = newData.items.filter(cd => !existingIds.has(cd.id));
-                return [...prev, ...filtered];
+                const updated = [...prev, ...filtered];
+
+                saveCache(updated, newData.total);
+
+                return updated;
             });
+
+            setTotalCount(newData.total);
             setCurrentPage(nextPageNum);
 
             if (nextPageNum < totalPages) {
