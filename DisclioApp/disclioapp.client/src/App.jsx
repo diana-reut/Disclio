@@ -38,39 +38,70 @@ const AdminRoute = ({ children, currentUser }) => {
 };
 
 function App() {
+    const isSyncingRef = useRef(false);
+    const hasInitialSyncRunRef = useRef(false);
     const {
         cds,
         loadMore,
         hasMore,
         loading,
-        refresh
+        refresh,
+        addCdOffline,
+        updateCdOffline,
+        deleteCdOffline
     } = useCDPagination(10);
 
     const GRAPHQL_ENDPOINT = `http://${window.location.hostname}:8080/graphql`;
 
     const deleteCD = async (id) => {
         const query = `
-            mutation DeleteCD($id: Int!) {
-                deleteCD(id: $id)
-            }
-        `;
+        mutation DeleteCD($id: Int!) {
+            deleteCD(id: $id)
+        }
+    `;
+
+        const variables = { id: parseInt(id, 10) };
+        const payload = { query, variables };
+
+        if (!navigator.onLine) {
+            deleteCdOffline(id);
+            await addToQueue(payload);
+            alert("You are offline. Delete was saved locally and will sync later.");
+            return;
+        }
+
         try {
             const response = await fetch(GRAPHQL_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({
-                    query,
-                    variables: { id: parseInt(id, 10) }
-                }),
+                body: JSON.stringify(payload),
             });
-            if (response.ok) refresh();
+
+            const json = await response.json();
+
+            if (json.errors) {
+                console.error("Delete rejected:", json.errors);
+                alert("Delete failed.");
+                return;
+            }
+
+            deleteCdOffline(id);
         } catch (error) {
             console.error("Network error while deleting:", error);
+            deleteCdOffline(id);
+            await addToQueue(payload);
+            alert("Network error. Delete was saved offline and will sync later.");
         }
     };
 
     const syncOfflineData = async () => {
+        if (isSyncingRef.current) {
+            console.log("Sync already running. Skipping duplicate sync.");
+            return;
+        }
+
+        isSyncingRef.current = true;
         console.log("Attempting to sync offline data...");
 
         try {
@@ -86,10 +117,13 @@ function App() {
             for (const item of queue) {
                 try {
                     const response = await fetch(GRAPHQL_ENDPOINT, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({ query: item.query, variables: item.variables }),
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({
+                            query: item.query,
+                            variables: item.variables
+                        }),
                     });
 
                     const json = await response.json();
@@ -99,18 +133,19 @@ function App() {
                         console.log(`Successfully synced queue item: ${item.queueId}`);
                     } else {
                         console.error("Server rejected queued item:", json.errors);
-                        // You might want to handle persistent errors here so they don't block the queue forever
+                        break;
                     }
                 } catch (err) {
-                    console.error("Failed to sync item (still offline?):", err);
+                    console.error("Failed to sync item:", err);
                     break;
                 }
             }
 
             refresh();
-
         } catch (error) {
             console.error("Error accessing IndexedDB during sync:", error);
+        } finally {
+            isSyncingRef.current = false;
         }
     };
 
@@ -172,8 +207,15 @@ function App() {
 
         if (!navigator.onLine) {
             console.log("App is offline. Queuing request...");
+
+            if (isUpdate) {
+                updateCdOffline(id, variables);
+            } else {
+                addCdOffline(variables);
+            }
+
             await addToQueue(payload);
-            alert("You are offline. Your changes have been saved locally and will sync when you reconnect.");
+            alert("You are offline. Your changes were saved locally and will sync later.");
             return;
         }
 
@@ -194,7 +236,12 @@ function App() {
             }
             refresh();
         } catch (err) {
-            console.error("Network error detected. Saving to IndexedDB:", err);
+            if (isUpdate) {
+                updateCdOffline(id, variables);
+            } else {
+                addCdOffline(variables);
+            }
+
             await addToQueue(payload);
             alert("Network disconnected. Your CD was saved offline and will sync automatically.");
         }

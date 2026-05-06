@@ -160,6 +160,49 @@ export function useCDPagination(pageSize = 5) {
         loadInitialData();
     };
 
+    const addCdOffline = (cdData) => {
+        const tempCd = {
+            ...cdData,
+            id: Date.now() * -1, // temporary negative ID
+            songs: cdData.songs || []
+        };
+
+        setCds(prev => {
+            const updated = [tempCd, ...prev];
+            saveCache(updated, totalCount + 1);
+            return updated;
+        });
+
+        setTotalCount(prev => prev + 1);
+    };
+
+    const updateCdOffline = (id, cdData) => {
+        const numericId = parseInt(id, 10);
+
+        setCds(prev => {
+            const updated = prev.map(cd =>
+                cd.id === numericId
+                    ? { ...cd, ...cdData, id: numericId }
+                    : cd
+            );
+
+            saveCache(updated, totalCount);
+            return updated;
+        });
+    };
+
+    const deleteCdOffline = (id) => {
+        const numericId = parseInt(id, 10);
+
+        setCds(prev => {
+            const updated = prev.filter(cd => cd.id !== numericId);
+            saveCache(updated, totalCount - 1);
+            return updated;
+        });
+
+        setTotalCount(prev => Math.max(0, prev - 1));
+    };
+
     return {
         cds,
         loading,
@@ -167,5 +210,8 @@ export function useCDPagination(pageSize = 5) {
         hasMore: currentPage < totalPages,
         loadMore,
         refresh,
+        addCdOffline,
+        updateCdOffline,
+        deleteCdOffline
     };
 }
