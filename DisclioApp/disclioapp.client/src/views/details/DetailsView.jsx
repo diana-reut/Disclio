@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import './DetailsView.css';
 
-export function DetailsView() {
+export function DetailsView({ getCachedCDById }) {
     const { id } = useParams();
     const navigate = useNavigate();
 
@@ -52,7 +52,10 @@ export function DetailsView() {
             })
             .catch(err => {
                 console.error("Failed to fetch CD via GraphQL:", err);
-                setCd(null);
+
+                const cachedCd = getCachedCDById(id);
+                setCd(cachedCd);
+
                 setLoading(false);
             });
     }, [id]);

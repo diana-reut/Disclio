@@ -48,7 +48,8 @@ function App() {
         refresh,
         addCdOffline,
         updateCdOffline,
-        deleteCdOffline
+        deleteCdOffline,
+        getCachedCDById
     } = useCDPagination(10);
 
     const GRAPHQL_ENDPOINT = `http://${window.location.hostname}:8080/graphql`;
@@ -359,15 +360,16 @@ function App() {
 
                 <Route path="/chat" element={<ProtectedRoute><ChatView /></ProtectedRoute>} />
 
-                <Route path="/add" element={<ProtectedRoute><AddCDForm saveCD={saveCD} /></ProtectedRoute>} />
-                <Route path="/edit/:id" element={<ProtectedRoute><AddCDForm saveCD={saveCD} /></ProtectedRoute>} />
-                <Route path="/details/:id" element={<ProtectedRoute><DetailsView /></ProtectedRoute>} />
+                <Route path="/add" element={<ProtectedRoute><AddCDForm saveCD={saveCD} getCachedCDById={getCachedCDById} /></ProtectedRoute>} />
+                <Route path="/edit/:id" element={<ProtectedRoute><AddCDForm saveCD={saveCD} getCachedCDById={getCachedCDById} /></ProtectedRoute>} />
+                <Route path="/details/:id" element={<ProtectedRoute><DetailsView getCachedCDById={getCachedCDById} /></ProtectedRoute>} />
 
                 {/* RESTORED PROPS */}
                 <Route path="/details/:id/songs" element={
                     <ProtectedRoute>
                         <SongListView
                             addSong={addSong}
+                            getCachedCDById={getCachedCDById}
                         />
                     </ProtectedRoute>
                 } />

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './AddCDForm.css';
 
-export function AddCDForm({ saveCD }) {
+export function AddCDForm({ saveCD, getCachedCDById }) {
     const navigate = useNavigate();
     const { id } = useParams();
     const isEditMode = id !== undefined;
@@ -47,7 +47,29 @@ export function AddCDForm({ saveCD }) {
                     setPhotos(data.photos || []);
                     setLoading(false);
                 })
-                .catch(err => setLoading(false));
+                .catch(err => {
+                    console.error("Failed to fetch CD for edit:", err);
+
+                    const cachedCd = getCachedCDById(id);
+
+                    if (cachedCd) {
+                        setFormData({
+                            title: cachedCd.title || '',
+                            artist: cachedCd.artist || '',
+                            category: cachedCd.category || '',
+                            manufacturer: cachedCd.manufacturer || '',
+                            year: cachedCd.year || '',
+                            condition: cachedCd.condition || 'Very good',
+                            rating: cachedCd.rating || 0,
+                            description: cachedCd.description || ''
+                        });
+
+                        setSongs(cachedCd.songs ? cachedCd.songs.map(s => s.title || s) : []);
+                        setPhotos(cachedCd.photos || []);
+                    }
+
+                    setLoading(false);
+                });
         }
     }, [id, isEditMode]);
 

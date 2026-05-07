@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import './SongListView.css';
 
-export function SongListView() {
+export function SongListView({ getCachedCDById }) {
     const { id } = useParams();
     const navigate = useNavigate();
 
@@ -32,6 +32,12 @@ export function SongListView() {
             .then(res => res.json())
             .then(json => {
                 if (json.data?.cd) setCd(json.data.cd);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Failed to fetch CD via GraphQL:", err);
+                const cachedCd = getCachedCDById(id);
+                setCd(cachedCd);
                 setLoading(false);
             });
     };
@@ -131,7 +137,7 @@ export function SongListView() {
                 <motion.div className="center-art-section">
                     <h2 className="album-title-top">{cd.title?.toUpperCase()}</h2>
                     <img
-                        src={cd.photos || 'placeholder.jpg'}
+                        src={cd.photos?.[0] || 'placeholder.jpg'}
                         alt={cd.title}
                         className="center-album-art"
                     />

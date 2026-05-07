@@ -203,6 +203,14 @@ export function useCDPagination(pageSize = 5) {
         setTotalCount(prev => Math.max(0, prev - 1));
     };
 
+    const getCachedCDById = (id) => {
+        const cached = localStorage.getItem("cached_cds");
+        if (!cached) return null;
+
+        const cds = JSON.parse(cached);
+        return cds.find(cd => cd.id === parseInt(id, 10)) || null;
+    };
+
     return {
         cds,
         loading,
@@ -212,6 +220,7 @@ export function useCDPagination(pageSize = 5) {
         refresh,
         addCdOffline,
         updateCdOffline,
-        deleteCdOffline
+        deleteCdOffline,
+        getCachedCDById
     };
 }
