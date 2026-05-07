@@ -48,6 +48,11 @@ export function DetailsView({ getCachedCDById }) {
                     throw new Error(json.errors.message);
                 }
                 setCd(json.data.cd);
+                const cached = JSON.parse(localStorage.getItem("cached_cds") || "[]");
+                const updated = cached.map(cd =>
+                    cd.id === json.data.cd.id ? json.data.cd : cd
+                );
+                localStorage.setItem("cached_cds", JSON.stringify(updated));
                 setLoading(false);
             })
             .catch(err => {

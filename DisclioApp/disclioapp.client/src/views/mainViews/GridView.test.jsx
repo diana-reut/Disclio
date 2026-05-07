@@ -1,23 +1,33 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { GridView } from './GridView';
 
-// 1. Mock IntersectionObserver (essential for the lastElementRef logic)
-const mockObserve = jest.fn();
-const mockDisconnect = jest.fn();
+const mockObserve = vi.fn();
+const mockDisconnect = vi.fn();
+const intersectionObserverInstances = [];
 
-global.IntersectionObserver = jest.fn().mockImplementation((callback) => ({
-    observe: mockObserve,
-    disconnect: mockDisconnect,
-    unobserve: jest.fn(),
-}));
+class IntersectionObserverMock {
+    constructor(callback) {
+        this.callback = callback;
+        this.observe = mockObserve;
+        this.disconnect = mockDisconnect;
+        this.unobserve = vi.fn();
+        intersectionObserverInstances.push(this);
+    }
+}
 
-// 2. Mock Navigate
-const mockedNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-    ...jest.requireActual('react-router-dom'),
-    useNavigate: () => mockedNavigate,
-}));
+global.IntersectionObserver = IntersectionObserverMock;
+
+const mockedNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+    const actual = await vi.importActual('react-router-dom');
+    return {
+        ...actual,
+        useNavigate: () => mockedNavigate,
+    };
+});
 
 const mockCds = [
     { id: 1, title: 'Discovery', artist: 'Daft Punk', cover: 'daft.jpg' },
@@ -25,14 +35,15 @@ const mockCds = [
 ];
 
 describe('GridView Component', () => {
-    const mockDeleteCD = jest.fn();
-    const mockLoadMore = jest.fn();
+    const mockDeleteCD = vi.fn();
+    const mockLoadMore = vi.fn();
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
+        intersectionObserverInstances.length = 0;
     });
 
-    const renderGrid = (props = {}) => {
+    function renderGrid(props = {}) {
         return render(
             <MemoryRouter>
                 <GridView
@@ -45,10 +56,11 @@ describe('GridView Component', () => {
                 />
             </MemoryRouter>
         );
-    };
+    }
 
     test('renders the grid of albums correctly', () => {
         renderGrid();
+
         expect(screen.getByText('DISCOVERY')).toBeInTheDocument();
         expect(screen.getByText('JUSTICE')).toBeInTheDocument();
         expect(screen.getAllByRole('img')).toHaveLength(2);
@@ -56,20 +68,17 @@ describe('GridView Component', () => {
 
     test('navigates to details page when clicking a card', () => {
         renderGrid();
-        const firstCard = screen.getByText('DISCOVERY').closest('.grid-item');
-        fireEvent.click(firstCard);
+
+        fireEvent.click(screen.getByText('DISCOVERY').closest('.grid-item'));
         expect(mockedNavigate).toHaveBeenCalledWith('/details/1');
     });
 
     test('calls deleteCD and prevents navigation bubbling', () => {
         renderGrid();
-        // Get the first delete button
-        const deleteButtons = screen.getAllByText('🗑️');
-        fireEvent.click(deleteButtons);
 
-        // Ensure delete was called
+        fireEvent.click(screen.getAllByText('🗑️')[0]);
+
         expect(mockDeleteCD).toHaveBeenCalledWith(1);
-        // Ensure navigate was NOT called (because of e.stopPropagation)
         expect(mockedNavigate).not.toHaveBeenCalled();
     });
 
@@ -77,34 +86,47 @@ describe('GridView Component', () => {
         renderGrid();
 
         fireEvent.click(screen.getByText('+ Add Album'));
-        expect(mockedNavigate).toHaveBeenCalledWith('/add');
-
         fireEvent.click(screen.getByText('See Stats'));
-        expect(mockedNavigate).toHaveBeenCalledWith('/stats');
-
         fireEvent.click(screen.getByText('Switch to Tabular View'));
+        fireEvent.click(screen.getByText('Chat'));
+
+        expect(mockedNavigate).toHaveBeenCalledWith('/add');
+        expect(mockedNavigate).toHaveBeenCalledWith('/stats');
         expect(mockedNavigate).toHaveBeenCalledWith('/master-view');
+        expect(mockedNavigate).toHaveBeenCalledWith('/chat');
     });
 
     test('shows empty state message', () => {
         renderGrid({ cds: [] });
+
         expect(screen.getByText('No albums available.')).toBeInTheDocument();
     });
 
     test('shows loading indicator when loading more', () => {
         renderGrid({ loading: true });
+
         expect(screen.getByText('Loading more albums...')).toBeInTheDocument();
     });
 
     test('triggers loadMore when intersection happens', () => {
         renderGrid();
 
-        // Find the callback passed to IntersectionObserver
-        const [observerCallback] = global.IntersectionObserver.mock.calls;
-
-        // Simulate the intersection entry
-        observerCallback([{ isIntersecting: true }]);
+        intersectionObserverInstances[0].callback([{ isIntersecting: true }]);
 
         expect(mockLoadMore).toHaveBeenCalled();
+    });
+
+    test('does not trigger loadMore when there are no more albums', () => {
+        renderGrid({ hasMore: false });
+
+        intersectionObserverInstances[0].callback([{ isIntersecting: true }]);
+
+        expect(mockLoadMore).not.toHaveBeenCalled();
+    });
+
+    test('shows end of collection message when there are no more albums', () => {
+        renderGrid({ hasMore: false });
+
+        expect(screen.getByText("You've reached the end of the collection.")).toBeInTheDocument();
     });
 });

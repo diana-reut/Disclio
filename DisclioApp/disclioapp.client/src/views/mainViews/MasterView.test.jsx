@@ -1,22 +1,33 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { MasterView } from './MasterView';
 
-// 1. Mock IntersectionObserver
-const mockObserve = jest.fn();
-const mockDisconnect = jest.fn();
-global.IntersectionObserver = jest.fn().mockImplementation((callback) => ({
-    observe: mockObserve,
-    disconnect: mockDisconnect,
-    unobserve: jest.fn(),
-}));
+const mockObserve = vi.fn();
+const mockDisconnect = vi.fn();
+const intersectionObserverInstances = [];
 
-// 2. Mock Navigate
-const mockedNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-    ...jest.requireActual('react-router-dom'),
-    useNavigate: () => mockedNavigate,
-}));
+class IntersectionObserverMock {
+    constructor(callback) {
+        this.callback = callback;
+        this.observe = mockObserve;
+        this.disconnect = mockDisconnect;
+        this.unobserve = vi.fn();
+        intersectionObserverInstances.push(this);
+    }
+}
+
+global.IntersectionObserver = IntersectionObserverMock;
+
+const mockedNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+    const actual = await vi.importActual('react-router-dom');
+    return {
+        ...actual,
+        useNavigate: () => mockedNavigate,
+    };
+});
 
 const mockCds = [
     { id: 1, title: 'Homework', artist: 'Daft Punk', cover: 'homework.jpg' },
@@ -24,14 +35,15 @@ const mockCds = [
 ];
 
 describe('MasterView Component', () => {
-    const mockDeleteCD = jest.fn();
-    const mockLoadMore = jest.fn();
+    const mockDeleteCD = vi.fn();
+    const mockLoadMore = vi.fn();
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
+        intersectionObserverInstances.length = 0;
     });
 
-    const renderTable = (props = {}) => {
+    function renderTable(props = {}) {
         return render(
             <MemoryRouter>
                 <MasterView
@@ -44,74 +56,81 @@ describe('MasterView Component', () => {
                 />
             </MemoryRouter>
         );
-    };
+    }
 
     test('renders CD rows correctly', () => {
         renderTable();
+
         expect(screen.getByText('Homework')).toBeInTheDocument();
         expect(screen.getByText('Cross')).toBeInTheDocument();
-        // Check row index numbering (index + 1)
         expect(screen.getByText('1')).toBeInTheDocument();
         expect(screen.getByText('2')).toBeInTheDocument();
     });
 
     test('navigates to details on row click', () => {
         renderTable();
-        // Get a cell from the row
-        const rowCell = screen.getByText('Homework');
-        // The row is the parent tr
-        fireEvent.click(rowCell.closest('tr'));
+
+        fireEvent.click(screen.getByText('Homework').closest('tr'));
         expect(mockedNavigate).toHaveBeenCalledWith('/details/1');
     });
 
     test('edit button navigates and stops propagation', () => {
         renderTable();
-        const editButtons = screen.getAllByText('Edit');
 
-        fireEvent.click(editButtons);
+        fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
 
         expect(mockedNavigate).toHaveBeenCalledWith('/edit/1');
-        // Ensure the row click (details) wasn't triggered
         expect(mockedNavigate).not.toHaveBeenCalledWith('/details/1');
     });
 
     test('delete button triggers deleteCD and stops propagation', () => {
         renderTable();
-        const deleteButtons = screen.getAllByText('🗑️');
 
-        fireEvent.click(deleteButtons); // Delete Justice
+        fireEvent.click(screen.getAllByText('🗑️')[1]);
 
         expect(mockDeleteCD).toHaveBeenCalledWith(2);
-        // Ensure row click navigation was not triggered
         expect(mockedNavigate).not.toHaveBeenCalled();
     });
 
-    test('renders "No CDs found" when list is empty', () => {
+    test('renders no CDs found when list is empty', () => {
         renderTable({ cds: [] });
-        expect(screen.getByText(/No CDs found/i)).toBeInTheDocument();
-        // Verify colSpan matches header count
-        expect(screen.getByText(/No CDs found/i)).toHaveAttribute('colSpan', '5');
+
+        const emptyCell = screen.getByText(/No CDs found/i).closest('td');
+        expect(emptyCell).toHaveAttribute('colspan', '5');
     });
 
     test('infinite scroll triggers loadMore', () => {
         renderTable();
 
-        // Extract the callback from the mock
-        const [observerCallback] = global.IntersectionObserver.mock.calls;
-
-        // Simulate intersection
-        observerCallback([{ isIntersecting: true }]);
+        intersectionObserverInstances[0].callback([{ isIntersecting: true }]);
 
         expect(mockLoadMore).toHaveBeenCalled();
+    });
+
+    test('does not trigger loadMore when loading is already in progress', () => {
+        renderTable({ loading: true });
+
+        expect(intersectionObserverInstances).toHaveLength(0);
+        expect(mockLoadMore).not.toHaveBeenCalled();
     });
 
     test('header buttons navigate to correct views', () => {
         renderTable();
 
+        fireEvent.click(screen.getByText('+ Add Album'));
         fireEvent.click(screen.getByText('Stats'));
-        expect(mockedNavigate).toHaveBeenCalledWith('/stats');
-
         fireEvent.click(screen.getByText('Grid View'));
+        fireEvent.click(screen.getByText('Chat'));
+
+        expect(mockedNavigate).toHaveBeenCalledWith('/add');
+        expect(mockedNavigate).toHaveBeenCalledWith('/stats');
         expect(mockedNavigate).toHaveBeenCalledWith('/grid-view');
+        expect(mockedNavigate).toHaveBeenCalledWith('/chat');
+    });
+
+    test('shows end of collection message when there are no more rows', () => {
+        renderTable({ hasMore: false });
+
+        expect(screen.getByText("You've reached the end of the collection.")).toBeInTheDocument();
     });
 });

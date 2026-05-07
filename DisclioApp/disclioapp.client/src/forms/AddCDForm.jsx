@@ -42,6 +42,17 @@ export function AddCDForm({ saveCD, getCachedCDById }) {
                 .then(res => res.json())
                 .then(json => {
                     const data = json.data.cd;
+
+                    const cached = JSON.parse(localStorage.getItem("cached_cds") || "[]");
+
+                    const updated = cached.map(cd =>
+                        cd.id === parseInt(id, 10)
+                            ? { ...cd, ...data }
+                            : cd
+                    );
+
+                    localStorage.setItem("cached_cds", JSON.stringify(updated));
+
                     setFormData({ ...data, year: data.year || '' });
                     setSongs(data.songs ? data.songs.map(s => s.title) : []);
                     setPhotos(data.photos || []);

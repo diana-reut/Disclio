@@ -31,7 +31,20 @@ export function SongListView({ getCachedCDById }) {
         })
             .then(res => res.json())
             .then(json => {
-                if (json.data?.cd) setCd(json.data.cd);
+                if (json.data?.cd) {
+                    setCd(json.data.cd);
+
+                    const cached = JSON.parse(localStorage.getItem("cached_cds") || "[]");
+
+                    const updated = cached.map(cd =>
+                        cd.id === json.data.cd.id
+                            ? { ...cd, ...json.data.cd }
+                            : cd
+                    );
+
+                    localStorage.setItem("cached_cds", JSON.stringify(updated));
+                }
+
                 setLoading(false);
             })
             .catch(err => {
