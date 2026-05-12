@@ -2,10 +2,13 @@ package com.example.DisclioApp.Server.service;
 
 import com.example.DisclioApp.Server.config.AuthProperties;
 import com.example.DisclioApp.Server.model.AuthSession;
+import com.example.DisclioApp.Server.model.PasswordResetResponse;
+import com.example.DisclioApp.Server.model.PasswordResetToken;
 import com.example.DisclioApp.Server.model.Permission;
 import com.example.DisclioApp.Server.model.Role;
 import com.example.DisclioApp.Server.model.User;
 import com.example.DisclioApp.Server.repository.AuthSessionRepository;
+import com.example.DisclioApp.Server.repository.PasswordResetTokenRepository;
 import com.example.DisclioApp.Server.repository.RoleRepository;
 import com.example.DisclioApp.Server.repository.UserRepository;
 import io.jsonwebtoken.Claims;
@@ -21,16 +24,22 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.security.MessageDigest;
+import java.nio.charset.StandardCharsets;
 
 @Service
 public class AuthService {
     public static final String ACCESS_TOKEN_COOKIE = "disclio_access_token";
+    private static final String PASSWORD_RESET_MESSAGE = "If that account exists, you can use the recovery token below to reset the password.";
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final AuthSessionRepository authSessionRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthProperties authProperties;
@@ -39,6 +48,7 @@ public class AuthService {
             UserRepository userRepository,
             RoleRepository roleRepository,
             AuthSessionRepository authSessionRepository,
+            PasswordResetTokenRepository passwordResetTokenRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
             AuthProperties authProperties
@@ -46,6 +56,7 @@ public class AuthService {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.authSessionRepository = authSessionRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authProperties = authProperties;
@@ -171,6 +182,66 @@ public class AuthService {
         clearAuthentication(response);
     }
 
+    public PasswordResetResponse requestPasswordReset(String identifier) {
+        Optional<User> userOptional = findUserByIdentifier(identifier);
+        if (userOptional.isEmpty()) {
+            return new PasswordResetResponse(PASSWORD_RESET_MESSAGE, null);
+        }
+
+        User user = userOptional.get();
+        Instant now = Instant.now();
+        passwordResetTokenRepository.findByUserAndUsedAtIsNull(user).forEach(existingToken -> {
+            existingToken.setUsedAt(now);
+            passwordResetTokenRepository.save(existingToken);
+        });
+
+        String rawToken = UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
+        PasswordResetToken resetToken = new PasswordResetToken();
+        resetToken.setUser(user);
+        resetToken.setTokenHash(hashToken(rawToken));
+        resetToken.setExpiresAt(now.plus(Duration.ofMinutes(authProperties.getPasswordResetTokenMinutes())));
+        passwordResetTokenRepository.save(resetToken);
+
+        return new PasswordResetResponse(PASSWORD_RESET_MESSAGE, rawToken);
+    }
+
+    public boolean resetPassword(String token, String newPassword) {
+        if (token == null || token.isBlank() || newPassword == null || newPassword.isBlank()) {
+            return false;
+        }
+
+        Optional<PasswordResetToken> resetTokenOptional = passwordResetTokenRepository.findByTokenHashAndUsedAtIsNull(hashToken(token));
+        if (resetTokenOptional.isEmpty()) {
+            return false;
+        }
+
+        PasswordResetToken resetToken = resetTokenOptional.get();
+        if (resetToken.getExpiresAt().isBefore(Instant.now())) {
+            resetToken.setUsedAt(Instant.now());
+            passwordResetTokenRepository.save(resetToken);
+            return false;
+        }
+
+        User user = resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        resetToken.setUsedAt(Instant.now());
+        passwordResetTokenRepository.save(resetToken);
+
+        authSessionRepository.findByUserAndRevokedFalse(user).forEach(session -> {
+            session.setRevoked(true);
+            authSessionRepository.save(session);
+        });
+
+        ServletRequestAttributes attributes = currentServletAttributesOrNull();
+        if (attributes != null && attributes.getResponse() != null) {
+            clearAuthentication(attributes.getResponse());
+        }
+
+        return true;
+    }
+
     public void clearAuthentication(HttpServletResponse response) {
         ResponseCookie cookie = ResponseCookie.from(ACCESS_TOKEN_COOKIE, "")
                 .httpOnly(true)
@@ -221,6 +292,13 @@ public class AuthService {
         return attributes;
     }
 
+    private ServletRequestAttributes currentServletAttributesOrNull() {
+        if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes) {
+            return attributes;
+        }
+        return null;
+    }
+
     private String readAccessToken(HttpServletRequest request) {
         if (request.getCookies() == null) {
             return null;
@@ -249,5 +327,24 @@ public class AuthService {
 
     private boolean isBcryptHash(String value) {
         return value.startsWith("$2a$") || value.startsWith("$2b$") || value.startsWith("$2y$");
+    }
+
+    private Optional<User> findUserByIdentifier(String identifier) {
+        if (identifier == null || identifier.isBlank()) {
+            return Optional.empty();
+        }
+
+        return userRepository.findByUsername(identifier)
+                .or(() -> userRepository.findByEmail(identifier));
+    }
+
+    private String hashToken(String rawToken) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(bytes);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Could not hash password reset token.", ex);
+        }
     }
 }

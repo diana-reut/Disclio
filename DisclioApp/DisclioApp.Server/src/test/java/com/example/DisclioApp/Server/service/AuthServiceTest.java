@@ -2,10 +2,13 @@ package com.example.DisclioApp.Server.service;
 
 import com.example.DisclioApp.Server.config.AuthProperties;
 import com.example.DisclioApp.Server.model.AuthSession;
+import com.example.DisclioApp.Server.model.PasswordResetResponse;
+import com.example.DisclioApp.Server.model.PasswordResetToken;
 import com.example.DisclioApp.Server.model.Permission;
 import com.example.DisclioApp.Server.model.Role;
 import com.example.DisclioApp.Server.model.User;
 import com.example.DisclioApp.Server.repository.AuthSessionRepository;
+import com.example.DisclioApp.Server.repository.PasswordResetTokenRepository;
 import com.example.DisclioApp.Server.repository.RoleRepository;
 import com.example.DisclioApp.Server.repository.UserRepository;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,6 +22,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -41,6 +45,9 @@ class AuthServiceTest {
     private AuthSessionRepository authSessionRepository;
 
     @Mock
+    private PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     @Mock
@@ -57,6 +64,7 @@ class AuthServiceTest {
         authProperties.setJwtSecret("0123456789abcdef0123456789abcdef0123456789abcdef");
         authProperties.setAccessTokenMinutes(30);
         authProperties.setInactivityTimeoutMinutes(15);
+        authProperties.setPasswordResetTokenMinutes(15);
         authProperties.setSecureCookies(false);
 
         jwtService = new JwtService(authProperties);
@@ -64,6 +72,7 @@ class AuthServiceTest {
                 userRepository,
                 roleRepository,
                 authSessionRepository,
+                passwordResetTokenRepository,
                 passwordEncoder,
                 jwtService,
                 authProperties
@@ -117,6 +126,57 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.authenticate("alice", "wrong", response))
                 .isInstanceOf(BadCredentialsException.class);
+    }
+
+    @Test
+    void requestPasswordResetCreatesRecoverableTokenForKnownUser() {
+        User user = new User();
+        user.setUsername("alice");
+        user.setEmail("alice@example.com");
+
+        when(userRepository.findByUsername("alice@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(passwordResetTokenRepository.findByUserAndUsedAtIsNull(user)).thenReturn(List.of());
+        when(passwordResetTokenRepository.save(any(PasswordResetToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PasswordResetResponse response = authService.requestPasswordReset("alice@example.com");
+
+        assertThat(response.getMessage()).contains("If that account exists");
+        assertThat(response.getResetToken()).isNotBlank();
+        verify(passwordResetTokenRepository).save(any(PasswordResetToken.class));
+    }
+
+    @Test
+    void resetPasswordUpdatesPasswordAndRevokesSessions() {
+        User user = new User();
+        user.setUsername("alice");
+
+        PasswordResetToken token = new PasswordResetToken();
+        token.setUser(user);
+        token.setExpiresAt(Instant.now().plusSeconds(300));
+
+        AuthSession session = new AuthSession();
+        session.setUser(user);
+        session.setRevoked(false);
+
+        PasswordResetResponse issued = issueResetTokenFor(user, "alice");
+        when(passwordResetTokenRepository.findByTokenHashAndUsedAtIsNull(any(String.class))).thenReturn(Optional.of(token));
+        when(passwordEncoder.encode("new-secret")).thenReturn("hashed-new-secret");
+        when(authSessionRepository.findByUserAndRevokedFalse(user)).thenReturn(List.of(session));
+
+        boolean reset = authService.resetPassword(issued.getResetToken(), "new-secret");
+
+        assertThat(reset).isTrue();
+        assertThat(user.getPassword()).isEqualTo("hashed-new-secret");
+        assertThat(session.isRevoked()).isTrue();
+        verify(userRepository).save(user);
+    }
+
+    private PasswordResetResponse issueResetTokenFor(User user, String identifier) {
+        when(userRepository.findByUsername(identifier)).thenReturn(Optional.of(user));
+        when(passwordResetTokenRepository.findByUserAndUsedAtIsNull(user)).thenReturn(List.of());
+        when(passwordResetTokenRepository.save(any(PasswordResetToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        return authService.requestPasswordReset(identifier);
     }
 
     private Role roleWithPermissions(String roleName, String... permissionNames) {

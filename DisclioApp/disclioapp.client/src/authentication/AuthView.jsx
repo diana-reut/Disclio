@@ -14,19 +14,26 @@ export function AuthView({ onLogin }) {
         firstName: '',
         lastName: '',
         email: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        identifier: '',
+        resetToken: '',
+        newPassword: '',
+        confirmNewPassword: ''
     });
     const [errors, setErrors] = useState({});
     const [isShaking, setIsShaking] = useState(false);
     const [serverMessage, setServerMessage] = useState('');
+    const [recoveryToken, setRecoveryToken] = useState('');
 
     const switchMode = (newMode) => {
         setFormData({
             username: '', password: '', firstName: '', lastName: '',
-            email: '', confirmPassword: ''
+            email: '', confirmPassword: '', identifier: '',
+            resetToken: '', newPassword: '', confirmNewPassword: ''
         });
         setErrors({});
         setServerMessage('');
+        setRecoveryToken('');
         setMode(newMode);
     };
 
@@ -56,6 +63,10 @@ export function AuthView({ onLogin }) {
 
         if (fieldsToValidate.includes('confirmPassword') && formData.password !== formData.confirmPassword) {
             newErrors.confirmPassword = true;
+        }
+
+        if (fieldsToValidate.includes('confirmNewPassword') && formData.newPassword !== formData.confirmNewPassword) {
+            newErrors.confirmNewPassword = true;
         }
 
         if (Object.keys(newErrors).length > 0) {
@@ -152,6 +163,76 @@ export function AuthView({ onLogin }) {
             return; // Exit function
         }
 
+        if (nextMode === 'recover-token') {
+            const query = `
+                mutation RequestPasswordReset($identifier: String!) {
+                    requestPasswordReset(identifier: $identifier) {
+                        message
+                        resetToken
+                    }
+                }
+            `;
+
+            try {
+                const result = await graphqlRequest({
+                    query,
+                    variables: {
+                        identifier: formData.identifier
+                    }
+                });
+
+                if (result.data?.requestPasswordReset) {
+                    setRecoveryToken(result.data.requestPasswordReset.resetToken || '');
+                    setServerMessage(result.data.requestPasswordReset.message || 'Recovery token generated.');
+                    setErrors({});
+                    setMode('resetPassword');
+                } else {
+                    const message = getGraphQLErrorMessage(result) || 'Could not generate a recovery token.';
+                    setServerMessage(message);
+                    triggerShake();
+                }
+            } catch (err) {
+                console.error("Password recovery request failed", err);
+                setServerMessage('Could not reach the server.');
+                triggerShake();
+            }
+            return;
+        }
+
+        if (nextMode === 'reset-complete') {
+            const query = `
+                mutation ResetPassword($token: String!, $newPassword: String!) {
+                    resetPassword(token: $token, newPassword: $newPassword)
+                }
+            `;
+
+            try {
+                const result = await graphqlRequest({
+                    query,
+                    variables: {
+                        token: formData.resetToken,
+                        newPassword: formData.newPassword
+                    }
+                });
+
+                if (result.data?.resetPassword) {
+                    setRecoveryToken('');
+                    setErrors({});
+                    setServerMessage('');
+                    setMode('resetSuccess');
+                } else {
+                    const message = getGraphQLErrorMessage(result) || 'Invalid or expired recovery token.';
+                    setServerMessage(message);
+                    triggerShake();
+                }
+            } catch (err) {
+                console.error("Password reset failed", err);
+                setServerMessage('Could not reach the server.');
+                triggerShake();
+            }
+            return;
+        }
+
         // 4. Handle Navigation between signup steps
         setMode(nextMode);
         setErrors({});
@@ -178,7 +259,47 @@ export function AuthView({ onLogin }) {
                         </div>
                         <button className="auth-btn main" onClick={() => handleAction('master', ['username', 'password'])}>LOGIN</button>
                         {serverMessage && <small className="error-text">{serverMessage}</small>}
+                        <p className="auth-footer">Forgot your password? <span onClick={() => switchMode('forgotPassword')}>RECOVER IT</span></p>
                         <p className="auth-footer">Don't have an account? <span onClick={() => switchMode('signup1')}>SIGN UP</span></p>
+                    </div>
+                );
+            case 'forgotPassword':
+                return (
+                    <div className={`auth-card ${isShaking ? 'shake' : ''}`}>
+                        <h2 className="auth-title">RECOVER PASSWORD</h2>
+                        <div className="auth-form-content">
+                            <div className="input-group">
+                                <label>Username or Email</label>
+                                <input name="identifier" value={formData.identifier} className={getCls('identifier')} type="text" onChange={handleChange} />
+                            </div>
+                        </div>
+                        <button className="auth-btn main" onClick={() => handleAction('recover-token', ['identifier'])}>GET TOKEN</button>
+                        {serverMessage && <small className="error-text">{serverMessage}</small>}
+                        <p className="auth-footer">Back to <span onClick={() => switchMode('login')}>LOGIN</span></p>
+                    </div>
+                );
+            case 'resetPassword':
+                return (
+                    <div className={`auth-card ${isShaking ? 'shake' : ''}`}>
+                        <h2 className="auth-title">RESET PASSWORD</h2>
+                        <div className="auth-form-content">
+                            <div className="input-group">
+                                <label>Recovery Token</label>
+                                <input name="resetToken" value={formData.resetToken} className={getCls('resetToken')} type="text" onChange={handleChange} />
+                            </div>
+                            <div className="input-group">
+                                <label>New Password</label>
+                                <input name="newPassword" value={formData.newPassword} className={getCls('newPassword')} type="password" onChange={handleChange} />
+                            </div>
+                            <div className="input-group">
+                                <label>Confirm New Password</label>
+                                <input name="confirmNewPassword" value={formData.confirmNewPassword} className={getCls('confirmNewPassword')} type="password" onChange={handleChange} />
+                                {errors.confirmNewPassword && <small className="error-text">Passwords do not match</small>}
+                            </div>
+                            {recoveryToken && <small className="error-text">Demo recovery token: {recoveryToken}</small>}
+                        </div>
+                        <button className="auth-btn main" onClick={() => handleAction('reset-complete', ['resetToken', 'newPassword', 'confirmNewPassword'])}>RESET PASSWORD</button>
+                        {serverMessage && <small className="error-text">{serverMessage}</small>}
                     </div>
                 );
             case 'signup1':
@@ -234,6 +355,17 @@ export function AuthView({ onLogin }) {
                         <div className="auth-form-content success-body">
                             <div className="success-icon slide-in">✔</div>
                             <p>Your account is ready!</p>
+                        </div>
+                        <button className="auth-btn main" onClick={() => switchMode('login')}>GO TO LOGIN</button>
+                    </div>
+                );
+            case 'resetSuccess':
+                return (
+                    <div className="auth-card success-card">
+                        <h2 className="auth-title">PASSWORD UPDATED</h2>
+                        <div className="auth-form-content success-body">
+                            <div className="success-icon slide-in">✓</div>
+                            <p>You can log in with your new password now.</p>
                         </div>
                         <button className="auth-btn main" onClick={() => switchMode('login')}>GO TO LOGIN</button>
                     </div>

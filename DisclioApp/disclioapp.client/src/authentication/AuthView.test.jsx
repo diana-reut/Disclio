@@ -92,4 +92,57 @@ describe('AuthView', () => {
             email: 'alice@example.com'
         });
     });
+
+    test('requests a recovery token and resets the password', async () => {
+        global.fetch = vi.fn()
+            .mockResolvedValueOnce({
+                json: async () => ({
+                    data: {
+                        requestPasswordReset: {
+                            message: 'If that account exists, you can use the recovery token below to reset the password.',
+                            resetToken: 'demo-token-123'
+                        }
+                    }
+                })
+            })
+            .mockResolvedValueOnce({
+                json: async () => ({
+                    data: {
+                        resetPassword: true
+                    }
+                })
+            });
+
+        const { container } = renderAuthView();
+
+        fireEvent.click(screen.getByText('RECOVER IT'));
+        fireEvent.change(container.querySelector('input[name="identifier"]'), { target: { value: 'alice@example.com' } });
+        fireEvent.click(screen.getByRole('button', { name: 'GET TOKEN' }));
+
+        await waitFor(() => {
+            expect(screen.getByText(/Demo recovery token:/)).toBeInTheDocument();
+        });
+
+        fireEvent.change(container.querySelector('input[name="resetToken"]'), { target: { value: 'demo-token-123' } });
+        fireEvent.change(container.querySelector('input[name="newPassword"]'), { target: { value: 'new-secret' } });
+        fireEvent.change(container.querySelector('input[name="confirmNewPassword"]'), { target: { value: 'new-secret' } });
+        fireEvent.click(screen.getByRole('button', { name: 'RESET PASSWORD' }));
+
+        await waitFor(() => {
+            expect(screen.getByText('PASSWORD UPDATED')).toBeInTheDocument();
+        });
+
+        const firstRequestBody = JSON.parse(global.fetch.mock.calls[0][1].body);
+        expect(firstRequestBody.query).toContain('mutation RequestPasswordReset');
+        expect(firstRequestBody.variables).toEqual({
+            identifier: 'alice@example.com'
+        });
+
+        const secondRequestBody = JSON.parse(global.fetch.mock.calls[1][1].body);
+        expect(secondRequestBody.query).toContain('mutation ResetPassword');
+        expect(secondRequestBody.variables).toEqual({
+            token: 'demo-token-123',
+            newPassword: 'new-secret'
+        });
+    });
 });

@@ -1,6 +1,7 @@
 package com.example.DisclioApp.Server.controller;
 
 import com.example.DisclioApp.Server.model.ChatMessage;
+import com.example.DisclioApp.Server.model.PasswordResetResponse;
 import com.example.DisclioApp.Server.model.User;
 import com.example.DisclioApp.Server.repository.UserRepository;
 import com.example.DisclioApp.Server.service.AuthService;
@@ -42,6 +43,16 @@ public class UserGraphQLController {
     @MutationMapping
     public User login(@Argument String username, @Argument String password) {
         return authService.authenticate(username, password);
+    }
+
+    @MutationMapping
+    public PasswordResetResponse requestPasswordReset(@Argument String identifier) {
+        return authService.requestPasswordReset(identifier);
+    }
+
+    @MutationMapping
+    public boolean resetPassword(@Argument String token, @Argument String newPassword) {
+        return authService.resetPassword(token, newPassword);
     }
 
     @MutationMapping

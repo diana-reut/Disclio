@@ -7,6 +7,7 @@ public class AuthProperties {
     private String jwtSecret;
     private long accessTokenMinutes;
     private long inactivityTimeoutMinutes;
+    private long passwordResetTokenMinutes;
     private boolean secureCookies;
     private String sameSite;
 
@@ -32,6 +33,14 @@ public class AuthProperties {
 
     public void setInactivityTimeoutMinutes(long inactivityTimeoutMinutes) {
         this.inactivityTimeoutMinutes = inactivityTimeoutMinutes;
+    }
+
+    public long getPasswordResetTokenMinutes() {
+        return passwordResetTokenMinutes;
+    }
+
+    public void setPasswordResetTokenMinutes(long passwordResetTokenMinutes) {
+        this.passwordResetTokenMinutes = passwordResetTokenMinutes;
     }
 
     public boolean isSecureCookies() {
