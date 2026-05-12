@@ -525,6 +525,7 @@ export function AuthView({ onLogin }) {
                         </div>
                         <button className="auth-btn main" onClick={() => handleAction('master', ['username', 'password'])}>LOGIN</button>
                         {serverMessage && <small className="error-text">{serverMessage}</small>}
+                        <p className="auth-footer">Prefer a one-time code? <span onClick={() => switchMode('emailCodeRequest')}>EMAIL ME A CODE</span></p>
                         <p className="auth-footer">Forgot your password? <span onClick={() => switchMode('forgotPassword')}>RECOVER IT</span></p>
                         <p className="auth-footer">Don't have an account? <span onClick={() => switchMode('signup1')}>SIGN UP</span></p>
                     </div>

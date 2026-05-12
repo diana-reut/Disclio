@@ -35,6 +35,8 @@ Disclio supports the following major use cases:
 - authenticating users securely with role-aware access
 - restricting admin-only features such as generator control and monitoring views
 - recovering passwords via email-delivered reset tokens
+- logging in with one-time email codes
+- protecting selected accounts with three-way authentication
 - synchronizing queued mutations after reconnecting from offline mode
 - refreshing collection views in real time when the automatic generator adds content
 - serving frontend and backend over HTTPS
@@ -331,6 +333,67 @@ Small but important usability behavior:
 - the password recovery step is persisted in `sessionStorage`
 - if a phone reloads the page after switching to the mail app, the auth view reopens on the reset form
 
+### 9. Email Code Login
+
+The app also supports passwordless email-code login through:
+
+- `requestEmailLoginCode(identifier)`
+- `loginWithEmailCode(identifier, code)`
+
+Implemented behavior:
+
+- the identifier can be a username or email
+- the backend generates a one-time code
+- the code is emailed to the address on file
+- the frontend can complete login using the emailed code instead of a password
+
+This is useful both as a secondary login option and as part of the stronger secure-login flow.
+
+### 10. Three-Way Authentication
+
+The current three-way authentication flow is:
+
+1. password
+2. one-time email code
+3. TOTP authenticator code
+
+This flow is implemented through:
+
+- `beginSecureLogin(username, password)`
+- `verifySecureLoginCode(pendingLoginId, code)`
+- `finishSecureLogin(pendingLoginId, totpCode)`
+
+Important implementation details:
+
+- users still begin from the regular `LOGIN` button
+- after the password step, the backend decides whether the account has three-way authentication enabled
+- if it is enabled, the frontend automatically continues into:
+  - email code verification
+  - authenticator verification
+- if it is not enabled, the frontend falls back to normal password login
+
+This means users do not need a separate login entry point for secure login anymore.
+
+### 11. Authenticator / TOTP Setup
+
+Users can enable authenticator verification from the dashboard.
+
+Implemented behavior:
+
+- the backend generates a TOTP secret
+- the backend also generates an `otpauth://` URI
+- the frontend renders a QR code for enrollment
+- the user scans the QR code in Microsoft Authenticator or another TOTP app
+- the user confirms setup by entering the current 6-digit code
+
+Supporting operations include:
+
+- `totpEnabled`
+- `startTotpSetup`
+- `finishTotpSetup(code)`
+
+This approach works over LAN/IP because it does not rely on WebAuthn or hostname-restricted passkey flows.
+
 ## Data Management Features
 
 ### Pagination
@@ -555,6 +618,7 @@ This is implemented in [client.js](D:/Disclio/DisclioApp/disclioapp.client/src/a
 - `me`
 - `userExists(username)`
 - `getChatHistory(user1, user2)`
+- `totpEnabled`
 - `getSystemLogs`
 - `pagedSystemLogs(page, size)`
 - `totalLogCount`
@@ -570,6 +634,13 @@ This is implemented in [client.js](D:/Disclio/DisclioApp/disclioapp.client/src/a
 - `startGenerator`
 - `stopGenerator`
 - `login(username, password)`
+- `beginSecureLogin(username, password)`
+- `verifySecureLoginCode(pendingLoginId, code)`
+- `finishSecureLogin(pendingLoginId, totpCode)`
+- `requestEmailLoginCode(identifier)`
+- `loginWithEmailCode(identifier, code)`
+- `startTotpSetup`
+- `finishTotpSetup(code)`
 - `signup(...)`
 - `logout`
 - `requestPasswordReset(identifier)`
@@ -588,10 +659,13 @@ Relational data stored in SQL Server includes:
 - role-permission links
 - auth sessions
 - password reset tokens
+- email login codes
 - CDs
 - songs
 - logs
 - observation list
+
+User authentication state also stores TOTP-related fields in SQL Server, including whether authenticator verification is enabled and the associated secret.
 
 ### MongoDB
 
@@ -605,7 +679,9 @@ Client-side storage currently used:
   - cached CDs
   - cached total count
 - `sessionStorage`
-  - auth recovery flow persistence
+  - password recovery flow persistence
+  - email-code login flow persistence
+  - three-way login flow persistence
 - IndexedDB
   - queued offline mutations
 
@@ -629,6 +705,9 @@ Covered behaviors include:
 - password hashing on registration
 - session creation on login
 - invalid password rejection
+- email login code creation and verification
+- three-way login progression
+- TOTP setup and verification
 - reset token creation
 - password reset revoking sessions
 
@@ -637,6 +716,8 @@ Covered behaviors include:
 Frontend tests include:
 
 - auth flow tests
+- email-code login tests
+- three-way login tests
 - dashboard permission tests
 - admin dashboard tests
 - route/auth tests
@@ -660,6 +741,7 @@ Important backend properties currently include:
 - access token lifetime
 - inactivity timeout
 - password reset token lifetime
+- email login code lifetime
 - secure cookie settings
 - SMTP mail settings
 - HTTPS keystore settings
@@ -733,7 +815,17 @@ npm run build
 
 Password recovery is implemented with real email sending through Spring Mail. Delivery speed depends on the SMTP provider and recipient mailbox. Delays may come from the email provider rather than token generation itself.
 
-### 2. Self-Signed HTTPS Development
+### 2. Three-Way Authentication Over LAN
+
+The active strong-authentication implementation is based on:
+
+- password
+- email code
+- TOTP authenticator code
+
+This was chosen because it works reliably over LAN/IP deployments. It does not require DNS-based hostnames the way WebAuthn/passkey-based browser flows do.
+
+### 3. Self-Signed HTTPS Development
 
 When using a local self-signed certificate:
 
@@ -741,12 +833,11 @@ When using a local self-signed certificate:
 - other devices on the LAN may require certificate trust setup
 - `Not secure` in the browser UI can still mean the page is being served over HTTPS but with an untrusted local certificate
 
-
-### 3. Admin-Only Generator Controls
+### 4. Admin-Only Generator Controls
 
 The backend enforces generator permissions, and the frontend now mirrors that by hiding the controls for non-admin users.
 
-### 4. Offline Experience
+### 5. Offline Experience
 
 Offline mutations are not silently lost:
 
