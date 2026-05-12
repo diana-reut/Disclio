@@ -37,6 +37,11 @@ const AdminRoute = ({ children, currentUser }) => {
     return children;
 };
 
+const getStoredCurrentUser = () => {
+    const savedUser = localStorage.getItem('currentUser');
+    return savedUser ? JSON.parse(savedUser) : null;
+};
+
 function App() {
     const isSyncingRef = useRef(false);
     const hasInitialSyncRunRef = useRef(false);
@@ -51,6 +56,8 @@ function App() {
         deleteCdOffline,
         getCachedCDById
     } = useCDPagination(10);
+    const currentUser = getStoredCurrentUser();
+    const isAdmin = currentUser?.role === 'ADMIN';
 
     const GRAPHQL_ENDPOINT = `http://${window.location.hostname}:8080/graphql`;
 
@@ -311,11 +318,6 @@ function App() {
         } catch (err) { console.error("Error fetching song frequency statistics:", err); }
     };
 
-    const [currentUser, setCurrentUser] = useState(() => {
-        const savedUser = localStorage.getItem('currentUser');
-        return savedUser ? JSON.parse(savedUser) : null;
-    });
-
     return (
         <div className="container">
             <Routes>
@@ -332,13 +334,27 @@ function App() {
 
                 <Route path="/master-view" element={
                     <ProtectedRoute>
-                        <MasterView cds={cds} deleteCD={deleteCD} loadMore={loadMore} hasMore={hasMore} loading={loading} />
+                        <MasterView
+                            cds={cds}
+                            deleteCD={deleteCD}
+                            loadMore={loadMore}
+                            hasMore={hasMore}
+                            loading={loading}
+                            isAdmin={isAdmin}
+                        />
                     </ProtectedRoute>
                 } />
 
                 <Route path="/grid-view" element={
                     <ProtectedRoute>
-                        <GridView cds={cds} deleteCD={deleteCD} loadMore={loadMore} hasMore={hasMore} loading={loading} />
+                        <GridView
+                            cds={cds}
+                            deleteCD={deleteCD}
+                            loadMore={loadMore}
+                            hasMore={hasMore}
+                            loading={loading}
+                            isAdmin={isAdmin}
+                        />
                     </ProtectedRoute>
                 } />
 

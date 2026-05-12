@@ -7,7 +7,8 @@ export function MasterView({
     deleteCD,
     loadMore,
     hasMore,
-    loading
+    loading,
+    isAdmin = false
 }) {
     const navigate = useNavigate();
     const observer = useRef();
@@ -47,6 +48,14 @@ export function MasterView({
                     >
                         Chat
                     </button>
+                    {isAdmin && (
+                        <button
+                            className="small-btn"
+                            onClick={() => navigate('/admin')}
+                        >
+                            Admin
+                        </button>
+                    )}
                 </div>
 
                 <table>

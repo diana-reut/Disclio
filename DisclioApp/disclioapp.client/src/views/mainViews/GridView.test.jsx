@@ -96,6 +96,20 @@ describe('GridView Component', () => {
         expect(mockedNavigate).toHaveBeenCalledWith('/chat');
     });
 
+    test('shows admin button only for admins and navigates to admin page', () => {
+        renderGrid({ isAdmin: true });
+
+        fireEvent.click(screen.getByText('Admin'));
+
+        expect(mockedNavigate).toHaveBeenCalledWith('/admin');
+    });
+
+    test('does not show admin button for non-admins', () => {
+        renderGrid({ isAdmin: false });
+
+        expect(screen.queryByText('Admin')).not.toBeInTheDocument();
+    });
+
     test('shows empty state message', () => {
         renderGrid({ cds: [] });
 

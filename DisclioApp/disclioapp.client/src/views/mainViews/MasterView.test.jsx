@@ -128,6 +128,20 @@ describe('MasterView Component', () => {
         expect(mockedNavigate).toHaveBeenCalledWith('/chat');
     });
 
+    test('shows admin button only for admins and navigates to admin page', () => {
+        renderTable({ isAdmin: true });
+
+        fireEvent.click(screen.getByText('Admin'));
+
+        expect(mockedNavigate).toHaveBeenCalledWith('/admin');
+    });
+
+    test('does not show admin button for non-admins', () => {
+        renderTable({ isAdmin: false });
+
+        expect(screen.queryByText('Admin')).not.toBeInTheDocument();
+    });
+
     test('shows end of collection message when there are no more rows', () => {
         renderTable({ hasMore: false });
 

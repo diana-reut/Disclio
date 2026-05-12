@@ -7,7 +7,8 @@ export function GridView({
     deleteCD,
     loadMore,
     hasMore,
-    loading
+    loading,
+    isAdmin = false
 }) {
     const navigate = useNavigate();
     const observer = useRef();
@@ -62,6 +63,14 @@ export function GridView({
                 >
                     Chat
                 </button>
+                {isAdmin && (
+                    <button
+                        className="small-btn"
+                        onClick={() => navigate('/admin')}
+                    >
+                        Admin
+                    </button>
+                )}
 
             </div>
 
