@@ -13,7 +13,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*");
+                .setAllowedOriginPatterns(
+                        "https://*.*.*.*:5173",
+                        "http://*.*.*.*:5173"
+                );
     }
 
     @Override

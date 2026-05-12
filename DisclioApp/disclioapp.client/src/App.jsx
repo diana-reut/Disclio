@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import { AddCDForm } from './forms/AddCDForm';
@@ -14,38 +14,46 @@ import { LandingPage } from './presentation/LandingPage';
 import { AuthView } from './authentication/AuthView';
 import { useCDPagination } from './hooks/useCDPagination';
 import { addToQueue, getQueue, removeFromQueue } from './hooks/offlineSupport.js';
+import { getGraphQLErrorMessage, graphqlRequest, hasAuthError } from './api/client';
 
-const getCookie = (name) => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-    return null;
-};
+const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
 
-function ProtectedRoute({ children }) {
-    const isLoggedIn = getCookie('isLoggedIn');
-    if (!isLoggedIn) {
+function ProtectedRoute({ children, currentUser, authReady }) {
+    if (!authReady) {
+        return <div>Loading...</div>;
+    }
+
+    if (!currentUser) {
         return <Navigate to="/auth" replace />;
     }
     return children;
 }
 
-const AdminRoute = ({ children, currentUser }) => {
+const AdminRoute = ({ children, currentUser, authReady }) => {
+    if (!authReady) {
+        return <div>Loading...</div>;
+    }
+
     if (!currentUser || currentUser.role !== 'ADMIN') {
         return <Navigate to="/" />;
     }
     return children;
 };
 
-const getStoredCurrentUser = () => {
-    const savedUser = localStorage.getItem('currentUser');
-    return savedUser ? JSON.parse(savedUser) : null;
-};
+const normalizeUser = (user) => user
+    ? {
+        username: user.username,
+        firstName: user.firstName,
+        role: user.role?.name || 'USER'
+    }
+    : null;
 
 function App() {
     const isSyncingRef = useRef(false);
-    const hasInitialSyncRunRef = useRef(false);
-    const [currentUser, setCurrentUser] = useState(getStoredCurrentUser);
+    const inactivityTimerRef = useRef(null);
+    const currentUserRef = useRef(null);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [authReady, setAuthReady] = useState(false);
     const {
         cds,
         loadMore,
@@ -59,7 +67,9 @@ function App() {
     } = useCDPagination(10);
     const isAdmin = currentUser?.role === 'ADMIN';
 
-    const GRAPHQL_ENDPOINT = `http://${window.location.hostname}:8080/graphql`;
+    useEffect(() => {
+        currentUserRef.current = currentUser;
+    }, [currentUser]);
 
     const deleteCD = async (id) => {
         const query = `
@@ -79,17 +89,13 @@ function App() {
         }
 
         try {
-            const response = await fetch(GRAPHQL_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify(payload),
-            });
-
-            const json = await response.json();
+            const json = await graphqlRequest({ query, variables });
 
             if (json.errors) {
                 console.error("Delete rejected:", json.errors);
+                if (hasAuthError(json)) {
+                    setCurrentUser(null);
+                }
                 alert("Delete failed.");
                 return;
             }
@@ -124,23 +130,19 @@ function App() {
 
             for (const item of queue) {
                 try {
-                    const response = await fetch(GRAPHQL_ENDPOINT, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        credentials: "include",
-                        body: JSON.stringify({
-                            query: item.query,
-                            variables: item.variables
-                        }),
+                    const json = await graphqlRequest({
+                        query: item.query,
+                        variables: item.variables
                     });
-
-                    const json = await response.json();
 
                     if (!json.errors) {
                         await removeFromQueue(item.queueId);
                         console.log(`Successfully synced queue item: ${item.queueId}`);
                     } else {
                         console.error("Server rejected queued item:", json.errors);
+                        if (hasAuthError(json)) {
+                            setCurrentUser(null);
+                        }
                         break;
                     }
                 } catch (err) {
@@ -158,33 +160,104 @@ function App() {
     };
 
     useEffect(() => {
+        let ignore = false;
+
+        const loadAuthenticatedUser = async () => {
+            try {
+                const result = await graphqlRequest({
+                    query: `
+                        query {
+                            me {
+                                username
+                                firstName
+                                role { name }
+                            }
+                        }
+                    `
+                });
+
+                if (!ignore) {
+                    setCurrentUser(normalizeUser(result.data?.me));
+                }
+            } catch {
+                if (!ignore) {
+                    setCurrentUser(null);
+                }
+            } finally {
+                if (!ignore) {
+                    setAuthReady(true);
+                }
+            }
+        };
+
         const handleOnline = () => {
             console.log("Back online! Triggering sync...");
-            // If you need to trigger a React state update after syncing, 
-            // you can easily do it from here!
-            syncOfflineData();
+            if (currentUserRef.current) {
+                syncOfflineData();
+            }
         };
 
-        const syncCurrentUser = () => {
-            setCurrentUser(getStoredCurrentUser());
+        const handleFocus = () => {
+            loadAuthenticatedUser();
         };
 
-        if (navigator.onLine) {
-            syncOfflineData();
-        }
-
+        loadAuthenticatedUser();
         window.addEventListener('online', handleOnline);
-        window.addEventListener('storage', syncCurrentUser);
-        window.addEventListener('focus', syncCurrentUser);
-        window.addEventListener('currentUserChanged', syncCurrentUser);
+        window.addEventListener('focus', handleFocus);
 
         return () => {
+            ignore = true;
             window.removeEventListener('online', handleOnline);
-            window.removeEventListener('storage', syncCurrentUser);
-            window.removeEventListener('focus', syncCurrentUser);
-            window.removeEventListener('currentUserChanged', syncCurrentUser);
+            window.removeEventListener('focus', handleFocus);
         };
     }, []);
+
+    useEffect(() => {
+        if (!authReady || !currentUser) {
+            if (inactivityTimerRef.current) {
+                window.clearTimeout(inactivityTimerRef.current);
+            }
+            return undefined;
+        }
+
+        const logoutForInactivity = async () => {
+            try {
+                await graphqlRequest({
+                    query: `mutation { logout }`
+                });
+            } catch {
+            } finally {
+                setCurrentUser(null);
+            }
+        };
+
+        const resetTimer = () => {
+            if (inactivityTimerRef.current) {
+                window.clearTimeout(inactivityTimerRef.current);
+            }
+
+            inactivityTimerRef.current = window.setTimeout(() => {
+                logoutForInactivity();
+            }, INACTIVITY_TIMEOUT_MS);
+        };
+
+        const activityEvents = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
+        activityEvents.forEach(eventName => window.addEventListener(eventName, resetTimer));
+        resetTimer();
+
+        return () => {
+            activityEvents.forEach(eventName => window.removeEventListener(eventName, resetTimer));
+            if (inactivityTimerRef.current) {
+                window.clearTimeout(inactivityTimerRef.current);
+            }
+        };
+    }, [authReady, currentUser]);
+
+    useEffect(() => {
+        if (authReady && currentUser && navigator.onLine) {
+            syncOfflineData();
+        }
+    }, [authReady, currentUser]);
 
     const saveCD = async (cdData, id) => {
         const isUpdate = !!id;
@@ -238,18 +311,14 @@ function App() {
         }
 
         try {
-            const response = await fetch(GRAPHQL_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ query, variables }),
-            });
-
-            const json = await response.json();
+            const json = await graphqlRequest({ query, variables });
 
             if (json.errors) {
                 console.error("GraphQL Mutation Rejected:", json.errors);
-                alert("GraphQL Error: " + json.errors.message);
+                if (hasAuthError(json)) {
+                    setCurrentUser(null);
+                }
+                alert("GraphQL Error: " + getGraphQLErrorMessage(json));
                 return;
             }
             refresh();
@@ -282,12 +351,11 @@ function App() {
         };
 
         try {
-            await fetch(GRAPHQL_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ query, variables }),
-            });
+            const result = await graphqlRequest({ query, variables });
+            if (hasAuthError(result)) {
+                setCurrentUser(null);
+                return;
+            }
             refresh();
         } catch (err) {
             console.error("Error adding song:", err);
@@ -297,13 +365,11 @@ function App() {
     const fetchRatingStats = async () => {
         const query = `query { ratingStats { rating count } }`;
         try {
-            const res = await fetch(GRAPHQL_ENDPOINT, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: 'include',
-                body: JSON.stringify({ query })
-            });
-            const json = await res.json();
+            const json = await graphqlRequest({ query });
+            if (hasAuthError(json)) {
+                setCurrentUser(null);
+                return {};
+            }
             const statsMap = {};
             json.data.ratingStats.forEach(s => statsMap[s.rating] = s.count);
             console.log("ALBUM RATINGS: ", statsMap);
@@ -314,13 +380,11 @@ function App() {
     const fetchSongFrequencyStats = async () => {
         const query = `query { songFrequencyStats { songCount numberOfCds } }`;
         try {
-            const res = await fetch(GRAPHQL_ENDPOINT, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: 'include',
-                body: JSON.stringify({ query })
-            });
-            const json = await res.json();
+            const json = await graphqlRequest({ query });
+            if (hasAuthError(json)) {
+                setCurrentUser(null);
+                return {};
+            }
             const statsMap = {};
             json.data.songFrequencyStats.forEach(s => statsMap[s.songCount] = s.numberOfCds)
             console.log("SONG STATS:", statsMap);
@@ -334,16 +398,16 @@ function App() {
                 <Route
                     path="/admin"
                     element={
-                        <AdminRoute currentUser={currentUser}>
+                        <AdminRoute currentUser={currentUser} authReady={authReady}>
                             <AdminDashboard />
                         </AdminRoute>
                     }
                 />
                 <Route path="/" element={<LandingPage />} />
-                <Route path="/auth" element={<AuthView onLogin={setCurrentUser} />} />
+                <Route path="/auth" element={<AuthView onLogin={(user) => setCurrentUser(normalizeUser(user))} />} />
 
                 <Route path="/master-view" element={
-                    <ProtectedRoute>
+                    <ProtectedRoute currentUser={currentUser} authReady={authReady}>
                         <MasterView
                             cds={cds}
                             deleteCD={deleteCD}
@@ -356,7 +420,7 @@ function App() {
                 } />
 
                 <Route path="/grid-view" element={
-                    <ProtectedRoute>
+                    <ProtectedRoute currentUser={currentUser} authReady={authReady}>
                         <GridView
                             cds={cds}
                             deleteCD={deleteCD}
@@ -369,7 +433,7 @@ function App() {
                 } />
 
                 <Route path="/dashboard" element={
-                    <ProtectedRoute>
+                    <ProtectedRoute currentUser={currentUser} authReady={authReady}>
                         <DashboardView
                             cds={cds}
                             saveCD={saveCD}
@@ -384,15 +448,14 @@ function App() {
                     </ProtectedRoute>
                 } />
 
-                <Route path="/chat" element={<ProtectedRoute><ChatView /></ProtectedRoute>} />
+                <Route path="/chat" element={<ProtectedRoute currentUser={currentUser} authReady={authReady}><ChatView currentUser={currentUser} /></ProtectedRoute>} />
 
-                <Route path="/add" element={<ProtectedRoute><AddCDForm saveCD={saveCD} getCachedCDById={getCachedCDById} /></ProtectedRoute>} />
-                <Route path="/edit/:id" element={<ProtectedRoute><AddCDForm saveCD={saveCD} getCachedCDById={getCachedCDById} /></ProtectedRoute>} />
-                <Route path="/details/:id" element={<ProtectedRoute><DetailsView getCachedCDById={getCachedCDById} /></ProtectedRoute>} />
+                <Route path="/add" element={<ProtectedRoute currentUser={currentUser} authReady={authReady}><AddCDForm saveCD={saveCD} getCachedCDById={getCachedCDById} /></ProtectedRoute>} />
+                <Route path="/edit/:id" element={<ProtectedRoute currentUser={currentUser} authReady={authReady}><AddCDForm saveCD={saveCD} getCachedCDById={getCachedCDById} /></ProtectedRoute>} />
+                <Route path="/details/:id" element={<ProtectedRoute currentUser={currentUser} authReady={authReady}><DetailsView getCachedCDById={getCachedCDById} /></ProtectedRoute>} />
 
-                {/* RESTORED PROPS */}
                 <Route path="/details/:id/songs" element={
-                    <ProtectedRoute>
+                    <ProtectedRoute currentUser={currentUser} authReady={authReady}>
                         <SongListView
                             addSong={addSong}
                             getCachedCDById={getCachedCDById}
@@ -401,7 +464,7 @@ function App() {
                 } />
 
                 <Route path="/stats" element={
-                    <ProtectedRoute>
+                    <ProtectedRoute currentUser={currentUser} authReady={authReady}>
                         <StatisticsView
                             fetchRatingStats={fetchRatingStats}
                             fetchSongFrequencyStats={fetchSongFrequencyStats}

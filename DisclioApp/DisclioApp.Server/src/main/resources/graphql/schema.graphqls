@@ -81,12 +81,13 @@ type RatingStat { rating: Int, count: Int }
 type SongFrequencyStat { songCount: Int, numberOfCds: Int }
 
 extend type Query {
-    login(username: String!, password: String!): User
+    me: User
     userExists(username: String!): Boolean
     getChatHistory(user1: String!, user2: String!): [ChatMessage]
 }
 
 extend type Mutation {
+    login(username: String!, password: String!): User
     signup(
         username: String!,
         password: String!,
@@ -94,6 +95,7 @@ extend type Mutation {
         lastName: String,
         email: String
     ): User
+    logout: Boolean
 }
 
 type Role {

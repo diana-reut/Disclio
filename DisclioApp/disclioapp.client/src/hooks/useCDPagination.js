@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { GRAPHQL_ENDPOINT } from "../api/client";
 
 const CDS_CACHE_KEY = "cached_cds";
 const CDS_TOTAL_KEY = "cached_cds_total";
@@ -49,7 +50,7 @@ export function useCDPagination(pageSize = 5) {
             }
         `;
 
-        const res = await fetch(`http://${window.location.hostname}:8080/graphql`, {
+        const res = await fetch(GRAPHQL_ENDPOINT, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",

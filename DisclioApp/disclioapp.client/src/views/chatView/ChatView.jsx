@@ -2,23 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Client } from '@stomp/stompjs';
 import './ChatView.css';
+import { WS_ENDPOINT, graphqlRequest } from '../../api/client';
 
-export function ChatView() {
+export function ChatView({ currentUser }) {
     const navigate = useNavigate();
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [recipient, setRecipient] = useState("");
     const [isRecipientValid, setIsRecipientValid] = useState(false);
     const client = useRef(null);
-
-    const currentUser = document.cookie
-        .split('; ')
-        .find(row => row.trim().startsWith('username='))
-        ?.split('=')[1] || "Guest";
+    const currentUsername = currentUser?.username || "Guest";
 
     useEffect(() => {
         client.current = new Client({
-            brokerURL: `ws://${window.location.hostname}:8080/ws`,
+            brokerURL: WS_ENDPOINT,
             reconnectDelay: 5000,
         });
 
@@ -35,7 +32,7 @@ export function ChatView() {
     }, []);
 
     const fetchHistory = async (targetUser) => {
-        const myName = decodeURIComponent(currentUser);
+        const myName = currentUsername;
         const query = `
         query {
             getChatHistory(user1: "${myName}", user2: "${targetUser}") {
@@ -46,13 +43,7 @@ export function ChatView() {
         }`;
 
         try {
-            const response = await fetch(`http://${window.location.hostname}:8080/graphql`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ query })
-            });
-            const result = await response.json();
+            const result = await graphqlRequest({ query });
             if (result.data?.getChatHistory) {
                 setMessages(result.data.getChatHistory);
             }
@@ -64,13 +55,7 @@ export function ChatView() {
         const query = `{ userExists(username: "${recipient}") }`;
 
         try {
-            const response = await fetch(`http://${window.location.hostname}:8080/graphql`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ query })
-            });
-            const result = await response.json();
+            const result = await graphqlRequest({ query });
 
             if (result.data?.userExists) {
                 setIsRecipientValid(true);
@@ -85,7 +70,7 @@ export function ChatView() {
     const sendMessage = () => {
         if (input.trim() && client.current?.connected) {
             const chatMessage = {
-                sender: decodeURIComponent(currentUser),
+                sender: currentUsername,
                 content: input,
                 recipient: recipient,
                 timestamp: new Date().toISOString()
@@ -121,7 +106,7 @@ export function ChatView() {
             <div className="chat-window">
                 {isRecipientValid ? (
                     messages.map((msg, index) => (
-                        <div key={index} className={`msg-bubble ${msg.sender === decodeURIComponent(currentUser) ? 'sent' : 'received'}`}>
+                        <div key={index} className={`msg-bubble ${msg.sender === currentUsername ? 'sent' : 'received'}`}>
                             <span className="msg-sender">{msg.sender}</span>
                             <p className="msg-content">{msg.content}</p>
                         </div>

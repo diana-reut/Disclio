@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import './SongListView.css';
+import { GRAPHQL_ENDPOINT } from '../../api/client';
 
 export function SongListView({ getCachedCDById }) {
     const { id } = useParams();
@@ -11,8 +12,6 @@ export function SongListView({ getCachedCDById }) {
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [newSongTitle, setNewSongTitle] = useState("");
-
-    const GRAPHQL_ENDPOINT = `http://${window.location.hostname}:8080/graphql`;
 
     const fetchCdData = () => {
         const query = `

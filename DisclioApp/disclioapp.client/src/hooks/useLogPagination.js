@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { GRAPHQL_ENDPOINT } from "../api/client";
 
 export function useLogPagination(pageSize = 10) {
     const [logs, setLogs] = useState([]);
@@ -22,7 +23,7 @@ export function useLogPagination(pageSize = 10) {
             }
         `;
 
-        const response = await fetch(`http://${window.location.hostname}:8080/graphql`, {
+        const response = await fetch(GRAPHQL_ENDPOINT, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",

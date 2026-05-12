@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './AddCDForm.css';
+import { GRAPHQL_ENDPOINT } from '../api/client';
 
 export function AddCDForm({ saveCD, getCachedCDById }) {
     const navigate = useNavigate();
@@ -33,7 +34,7 @@ export function AddCDForm({ saveCD, getCachedCDById }) {
                     songs { title } 
                 } 
             }`;
-            fetch(`http://${window.location.hostname}:8080/graphql`, {
+            fetch(GRAPHQL_ENDPOINT, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: 'include',

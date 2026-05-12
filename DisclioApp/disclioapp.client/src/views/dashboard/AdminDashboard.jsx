@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './AdminDashboard.css';
 import { useLogPagination } from '../../hooks/useLogPagination';
+import { GRAPHQL_ENDPOINT } from '../../api/client';
 
 const AdminDashboard = () => {
     const [susUsers, setSusUsers] = useState([]);
@@ -30,7 +31,7 @@ const AdminDashboard = () => {
             `;
 
             try {
-                const response = await fetch(`http://${window.location.hostname}:8080/graphql`, {
+                const response = await fetch(GRAPHQL_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',

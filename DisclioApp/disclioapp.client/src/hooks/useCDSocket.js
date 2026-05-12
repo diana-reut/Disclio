@@ -1,12 +1,13 @@
 import { useEffect } from "react";
 import { Client } from "@stomp/stompjs";
+import { WS_ENDPOINT } from "../api/client";
 
 export function useCDSocket(onNewCD) {
 
     useEffect(() => {
 
         const client = new Client({
-            brokerURL: `ws://${window.location.hostname}:8080/ws`,
+            brokerURL: WS_ENDPOINT,
             reconnectDelay: 3000,
             debug: (msg) => console.log("STOMP:", msg),
         });

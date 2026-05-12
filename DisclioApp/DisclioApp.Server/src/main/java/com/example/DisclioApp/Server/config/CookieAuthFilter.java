@@ -1,8 +1,7 @@
 package com.example.DisclioApp.Server.config;
 
-import com.example.DisclioApp.Server.model.Permission;
 import com.example.DisclioApp.Server.model.User;
-import com.example.DisclioApp.Server.repository.UserRepository;
+import com.example.DisclioApp.Server.service.AuthService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -18,14 +17,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class CookieAuthFilter extends OncePerRequestFilter {
 
-    private final UserRepository userRepository;
+    private final AuthService authService;
 
-    public CookieAuthFilter(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public CookieAuthFilter(AuthService authService) {
+        this.authService = authService;
     }
 
     @Override
@@ -33,31 +33,26 @@ public class CookieAuthFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         if (request.getCookies() != null) {
-            String username = Arrays.stream(request.getCookies())
-                    .filter(c -> "username".equals(c.getName()))
+            String accessToken = Arrays.stream(request.getCookies())
+                    .filter(c -> AuthService.ACCESS_TOKEN_COOKIE.equals(c.getName()))
                     .map(Cookie::getValue)
                     .findFirst()
                     .orElse(null);
 
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                User user = userRepository.findByUsername(username).orElse(null);
-
-                if (user != null && user.getRole() != null) {
-
+            if (accessToken != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                Optional<User> userOptional = authService.resolveAuthenticatedUser(accessToken, response);
+                if (userOptional.isPresent() && userOptional.get().getRole() != null) {
+                    User user = userOptional.get();
                     List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-
                     authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().getName()));
-
-                    for (Permission permission : user.getRole().getPermissions()) {
-                        authorities.add(new SimpleGrantedAuthority(permission.getName()));
-                    }
+                    user.getRole().getPermissions()
+                            .forEach(permission -> authorities.add(new SimpleGrantedAuthority(permission.getName())));
 
                     UsernamePasswordAuthenticationToken badge = new UsernamePasswordAuthenticationToken(
-                            user.getUsername(),
+                            user,
                             null,
                             authorities
                     );
-
                     SecurityContextHolder.getContext().setAuthentication(badge);
                 }
             }

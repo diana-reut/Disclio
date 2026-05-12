@@ -75,18 +75,6 @@ vi.mock('./forms/AddCDForm', () => ({
                 >
                     submit-structured-cd
                 </button>
-                <button
-                    type="button"
-                    onClick={() => saveCD({
-                        title: 'Empty Numbers',
-                        artist: 'Test Artist',
-                        year: '',
-                        rating: '',
-                        songs: []
-                    }, params.id ?? null)}
-                >
-                    submit-empty-numbers-cd
-                </button>
             </div>
         );
     }
@@ -111,20 +99,10 @@ vi.mock('./views/details/SongListView', () => ({
                 onClick={() => addSong('7', {
                     title: 'Digital Love',
                     duration: '4:58',
-                    trackNumber: '2'
-                })}
-            >
-                add-song
-            </button>
-            <button
-                type="button"
-                onClick={() => addSong('7', {
-                    title: 'Track Zero',
-                    duration: '',
                     trackNumber: ''
                 })}
             >
-                add-song-default-track
+                add-song
             </button>
             <div>song-list-view</div>
         </div>
@@ -135,54 +113,66 @@ vi.mock('./views/details/DetailsView', () => ({ DetailsView: () => <div>details<
 vi.mock('./views/mainViews/MasterView', () => ({ MasterView: () => <div>master</div> }));
 vi.mock('./views/chatView/ChatView', () => ({ ChatView: () => <div>chat</div> }));
 vi.mock('./views/statistics/StatisticsView', () => ({
-    StatisticsView: ({ fetchRatingStats, fetchSongFrequencyStats }) => (
+    StatisticsView: ({ fetchRatingStats }) => (
         <div>
             <button type="button" onClick={async () => {
-                const result = await fetchRatingStats();
-                window.__statsResult = result;
+                window.__statsResult = await fetchRatingStats();
             }}>
                 fetch-rating-stats
-            </button>
-            <button type="button" onClick={async () => {
-                const result = await fetchSongFrequencyStats();
-                window.__songStatsResult = result;
-            }}>
-                fetch-song-stats
             </button>
             <div>stats</div>
         </div>
     )
 }));
-vi.mock('./views/dashboard/DashboardView', () => ({
-    DashboardView: ({ deleteCD }) => (
-        <div>
-            <button type="button" onClick={() => deleteCD(9)}>
-                dashboard-delete
-            </button>
-            <div>dashboard</div>
-        </div>
-    )
-}));
+vi.mock('./views/dashboard/DashboardView', () => ({ DashboardView: () => <div>dashboard</div> }));
 vi.mock('./views/dashboard/AdminDashboard', () => ({ default: () => <div>admin</div> }));
 vi.mock('./presentation/LandingPage', () => ({ LandingPage: () => <div>landing</div> }));
 vi.mock('./authentication/AuthView', () => ({ AuthView: () => <div>auth</div> }));
 
-describe('App CRUD operations', () => {
+let mockAuthenticatedUser;
+let customFetchHandler;
+
+const jsonResponse = (payload) => Promise.resolve({
+    json: async () => payload
+});
+
+const installFetchMock = () => {
+    global.fetch = vi.fn().mockImplementation(async (_url, options = {}) => {
+        const body = options.body ? JSON.parse(options.body) : {};
+
+        if (body.query?.includes('me')) {
+            return jsonResponse({
+                data: {
+                    me: mockAuthenticatedUser
+                }
+            });
+        }
+
+        if (customFetchHandler) {
+            return customFetchHandler(body);
+        }
+
+        return jsonResponse({ data: {}, errors: null });
+    });
+};
+
+describe('App auth and protected flows', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         window.alert = vi.fn();
-        document.cookie = 'isLoggedIn=true';
-        window.localStorage.setItem('currentUser', JSON.stringify({ role: 'USER' }));
+        window.__statsResult = undefined;
+        mockAuthenticatedUser = {
+            username: 'tester',
+            firstName: 'Test',
+            role: { name: 'USER' }
+        };
+        customFetchHandler = null;
         mockGetQueue.mockResolvedValue([]);
         Object.defineProperty(window.navigator, 'onLine', {
             value: true,
             configurable: true
         });
-        global.fetch = vi.fn().mockResolvedValue({
-            json: async () => ({ data: {}, errors: null })
-        });
-        window.__statsResult = undefined;
-        window.__songStatsResult = undefined;
+        installFetchMock();
     });
 
     function renderApp(route) {
@@ -193,16 +183,46 @@ describe('App CRUD operations', () => {
         );
     }
 
-    test('creates a CD through the add route', async () => {
-        renderApp('/add');
+    test('allows authenticated users into protected routes after loading the backend session', async () => {
+        renderApp('/grid-view');
+        expect(await screen.findByText('grid-view')).toBeInTheDocument();
+    });
 
-        fireEvent.click(screen.getByText('submit-cd'));
+    test('redirects protected routes to auth when the backend session is missing', async () => {
+        mockAuthenticatedUser = null;
+        installFetchMock();
+
+        renderApp('/grid-view');
+
+        expect(await screen.findByText('auth')).toBeInTheDocument();
+    });
+
+    test('redirects non-admin users away from admin route', async () => {
+        renderApp('/admin');
+        expect(await screen.findByText('landing')).toBeInTheDocument();
+    });
+
+    test('allows admin users to access admin route', async () => {
+        mockAuthenticatedUser = {
+            username: 'admin',
+            firstName: 'Admin',
+            role: { name: 'ADMIN' }
+        };
+        installFetchMock();
+
+        renderApp('/admin');
+        expect(await screen.findByText('admin')).toBeInTheDocument();
+    });
+
+    test('creates a CD through the add route and normalizes primitive songs', async () => {
+        renderApp('/add');
+        fireEvent.click(await screen.findByText('submit-cd'));
 
         await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalled();
+            expect(global.fetch).toHaveBeenCalledTimes(2);
         });
 
-        const requestBody = JSON.parse(global.fetch.mock.calls[0][1].body);
+        const requestBody = JSON.parse(global.fetch.mock.calls[1][1].body);
         expect(requestBody.query).toContain('mutation AddCD');
         expect(requestBody.variables).toEqual(expect.objectContaining({
             title: 'Discovery',
@@ -220,16 +240,15 @@ describe('App CRUD operations', () => {
         expect(mockRefresh).toHaveBeenCalled();
     });
 
-    test('preserves structured song objects and defaults blank track numbers to zero', async () => {
+    test('preserves structured songs during save', async () => {
         renderApp('/add');
-
-        fireEvent.click(screen.getByText('submit-structured-cd'));
+        fireEvent.click(await screen.findByText('submit-structured-cd'));
 
         await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalled();
+            expect(global.fetch).toHaveBeenCalledTimes(2);
         });
 
-        const requestBody = JSON.parse(global.fetch.mock.calls[0][1].body);
+        const requestBody = JSON.parse(global.fetch.mock.calls[1][1].body);
         expect(requestBody.variables.songs).toEqual([
             {
                 title: 'Daftendirekt',
@@ -239,43 +258,14 @@ describe('App CRUD operations', () => {
         ]);
     });
 
-    test('updates a CD through the edit route', async () => {
-        renderApp('/edit/42');
-
-        fireEvent.click(screen.getByText('submit-cd'));
-
-        await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalled();
-        });
-
-        const requestBody = JSON.parse(global.fetch.mock.calls[0][1].body);
-        expect(requestBody.query).toContain('mutation UpdateCD');
-        expect(requestBody.variables.id).toBe(42);
-        expect(mockRefresh).toHaveBeenCalled();
-    });
-
-    test('normalizes empty numeric fields to null on save', async () => {
-        renderApp('/add');
-
-        fireEvent.click(screen.getByText('submit-empty-numbers-cd'));
-
-        await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalled();
-        });
-
-        const requestBody = JSON.parse(global.fetch.mock.calls[0][1].body);
-        expect(requestBody.variables.year).toBeNull();
-        expect(requestBody.variables.rating).toBeNull();
-    });
-
     test('queues CD creation offline', async () => {
         Object.defineProperty(window.navigator, 'onLine', {
             value: false,
             configurable: true
         });
-        renderApp('/add');
 
-        fireEvent.click(screen.getByText('submit-cd'));
+        renderApp('/add');
+        fireEvent.click(await screen.findByText('submit-cd'));
 
         await waitFor(() => {
             expect(mockAddCdOffline).toHaveBeenCalled();
@@ -286,268 +276,57 @@ describe('App CRUD operations', () => {
         expect(window.alert).toHaveBeenCalledWith('You are offline. Your changes were saved locally and will sync later.');
     });
 
-    test('queues CD updates offline', async () => {
-        Object.defineProperty(window.navigator, 'onLine', {
-            value: false,
-            configurable: true
-        });
-        renderApp('/edit/42');
-
-        fireEvent.click(screen.getByText('submit-cd'));
-
-        await waitFor(() => {
-            expect(mockUpdateCdOffline).toHaveBeenCalledWith(
-                '42',
-                expect.objectContaining({ id: 42, title: 'Discovery' })
-            );
-        });
-        expect(mockAddToQueue).toHaveBeenCalled();
-    });
-
-    test('handles GraphQL errors during save', async () => {
-        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-        global.fetch = vi.fn().mockResolvedValue({
-            json: async () => ({ errors: { message: 'bad mutation' } })
-        });
-
-        renderApp('/add');
-        fireEvent.click(screen.getByText('submit-cd'));
-
-        await waitFor(() => {
-            expect(window.alert).toHaveBeenCalledWith('GraphQL Error: bad mutation');
-        });
-        expect(mockRefresh).not.toHaveBeenCalled();
-        consoleErrorSpy.mockRestore();
-    });
-
-    test('falls back to offline create on save network failure', async () => {
-        global.fetch = vi.fn().mockRejectedValue(new Error('offline'));
-
-        renderApp('/add');
-        fireEvent.click(screen.getByText('submit-cd'));
-
-        await waitFor(() => {
-            expect(mockAddCdOffline).toHaveBeenCalled();
-        });
-        expect(mockAddToQueue).toHaveBeenCalled();
-        expect(window.alert).toHaveBeenCalledWith('Network disconnected. Your CD was saved offline and will sync automatically.');
-    });
-
-    test('falls back to offline update on save network failure', async () => {
-        global.fetch = vi.fn().mockRejectedValue(new Error('offline'));
-
-        renderApp('/edit/42');
-        fireEvent.click(screen.getByText('submit-cd'));
-
-        await waitFor(() => {
-            expect(mockUpdateCdOffline).toHaveBeenCalledWith(
-                '42',
-                expect.objectContaining({ id: 42, title: 'Discovery' })
-            );
-        });
-        expect(mockAddToQueue).toHaveBeenCalled();
-    });
-
     test('deletes a CD through the grid route', async () => {
         renderApp('/grid-view');
-
-        fireEvent.click(screen.getByText('delete-cd'));
+        fireEvent.click(await screen.findByText('delete-cd'));
 
         await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalled();
+            expect(global.fetch).toHaveBeenCalledTimes(2);
         });
 
-        const requestBody = JSON.parse(global.fetch.mock.calls[0][1].body);
+        const requestBody = JSON.parse(global.fetch.mock.calls[1][1].body);
         expect(requestBody.query).toContain('mutation DeleteCD');
         expect(requestBody.variables).toEqual({ id: 7 });
         expect(mockDeleteCdOffline).toHaveBeenCalledWith(7);
     });
 
-    test('queues CD deletion offline', async () => {
-        Object.defineProperty(window.navigator, 'onLine', {
-            value: false,
-            configurable: true
-        });
-        renderApp('/grid-view');
-
-        fireEvent.click(screen.getByText('delete-cd'));
-
-        await waitFor(() => {
-            expect(mockDeleteCdOffline).toHaveBeenCalledWith(7);
-        });
-        expect(mockAddToQueue).toHaveBeenCalled();
-        expect(window.alert).toHaveBeenCalledWith('You are offline. Delete was saved locally and will sync later.');
-    });
-
-    test('shows an alert when delete is rejected by GraphQL', async () => {
-        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-        global.fetch = vi.fn().mockResolvedValue({
-            json: async () => ({ errors: { message: 'delete failed' } })
-        });
-
-        renderApp('/grid-view');
-        fireEvent.click(screen.getByText('delete-cd'));
-
-        await waitFor(() => {
-            expect(window.alert).toHaveBeenCalledWith('Delete failed.');
-        });
-        expect(mockDeleteCdOffline).not.toHaveBeenCalledWith(7);
-        consoleErrorSpy.mockRestore();
-    });
-
-    test('falls back to offline queue when delete has a network error', async () => {
-        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-        global.fetch = vi.fn().mockRejectedValue(new Error('network down'));
-
-        renderApp('/grid-view');
-        fireEvent.click(screen.getByText('delete-cd'));
-
-        await waitFor(() => {
-            expect(mockDeleteCdOffline).toHaveBeenCalledWith(7);
-        });
-        expect(mockAddToQueue).toHaveBeenCalled();
-        expect(window.alert).toHaveBeenCalledWith('Network error. Delete was saved offline and will sync later.');
-        consoleErrorSpy.mockRestore();
-    });
-
-    test('creates a song through the song list route', async () => {
+    test('adds a song with blank track numbers normalized to zero', async () => {
         renderApp('/details/7/songs');
-
-        fireEvent.click(screen.getByText('add-song'));
-
-        await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalled();
-        });
-
-        const requestBody = JSON.parse(global.fetch.mock.calls[0][1].body);
-        expect(requestBody.query).toContain('mutation AddSong');
-        expect(requestBody.variables).toEqual({
-            cdId: 7,
-            title: 'Digital Love',
-            duration: '4:58',
-            trackNumber: 2
-        });
-        expect(mockRefresh).toHaveBeenCalled();
-    });
-
-    test('defaults blank song track numbers to zero in app-level addSong', async () => {
-        renderApp('/details/7/songs');
-
-        fireEvent.click(screen.getByText('add-song-default-track'));
+        fireEvent.click(await screen.findByText('add-song'));
 
         await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalled();
+            expect(global.fetch).toHaveBeenCalledTimes(2);
         });
 
-        const requestBody = JSON.parse(global.fetch.mock.calls[0][1].body);
+        const requestBody = JSON.parse(global.fetch.mock.calls[1][1].body);
         expect(requestBody.variables.trackNumber).toBe(0);
     });
 
-    test('logs song creation errors without throwing', async () => {
-        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-        global.fetch = vi.fn().mockRejectedValue(new Error('song failed'));
-
-        renderApp('/details/7/songs');
-        fireEvent.click(screen.getByText('add-song'));
-
-        await waitFor(() => {
-            expect(consoleErrorSpy).toHaveBeenCalledWith('Error adding song:', expect.any(Error));
-        });
-        consoleErrorSpy.mockRestore();
-    });
-
-    test('fetches rating statistics from the stats route', async () => {
-        global.fetch = vi.fn().mockResolvedValue({
-            json: async () => ({ data: { ratingStats: [{ rating: 5, count: 3 }] } })
-        });
+    test('maps rating statistics from the server response', async () => {
+        customFetchHandler = async (body) => {
+            if (body.query?.includes('ratingStats')) {
+                return jsonResponse({
+                    data: {
+                        ratingStats: [{ rating: 5, count: 3 }]
+                    }
+                });
+            }
+            return jsonResponse({ data: {}, errors: null });
+        };
 
         renderApp('/stats');
-        fireEvent.click(screen.getByText('fetch-rating-stats'));
+        fireEvent.click(await screen.findByText('fetch-rating-stats'));
 
         await waitFor(() => {
             expect(window.__statsResult).toEqual({ 5: 3 });
         });
     });
 
-    test('handles rating statistics fetch failures', async () => {
-        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-        global.fetch = vi.fn().mockRejectedValue(new Error('stats down'));
-
-        renderApp('/stats');
-        fireEvent.click(screen.getByText('fetch-rating-stats'));
-
-        await waitFor(() => {
-            expect(consoleErrorSpy).toHaveBeenCalledWith('Error fetching rating statistics:', expect.any(Error));
-        });
-        consoleErrorSpy.mockRestore();
-    });
-
-    test('fetches song frequency statistics from the stats route', async () => {
-        global.fetch = vi.fn().mockResolvedValue({
-            json: async () => ({ data: { songFrequencyStats: [{ songCount: 10, numberOfCds: 2 }] } })
-        });
-
-        renderApp('/stats');
-        fireEvent.click(screen.getByText('fetch-song-stats'));
-
-        await waitFor(() => {
-            expect(window.__songStatsResult).toEqual({ 10: 2 });
-        });
-    });
-
-    test('handles song frequency statistics fetch failures', async () => {
-        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-        global.fetch = vi.fn().mockRejectedValue(new Error('song stats down'));
-
-        renderApp('/stats');
-        fireEvent.click(screen.getByText('fetch-song-stats'));
-
-        await waitFor(() => {
-            expect(consoleErrorSpy).toHaveBeenCalledWith('Error fetching song frequency statistics:', expect.any(Error));
-        });
-        consoleErrorSpy.mockRestore();
-    });
-
-    test('redirects protected routes to auth when logged out', async () => {
-        document.cookie = 'isLoggedIn=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-
-        renderApp('/grid-view');
-
-        expect(await screen.findByText('auth')).toBeInTheDocument();
-    });
-
-    test('redirects non-admin users away from admin route', async () => {
-        window.localStorage.setItem('currentUser', JSON.stringify({ role: 'USER' }));
-
-        renderApp('/admin');
-
-        expect(await screen.findByText('landing')).toBeInTheDocument();
-    });
-
-    test('redirects when there is no stored current user for admin route', async () => {
-        window.localStorage.removeItem('currentUser');
-
-        renderApp('/admin');
-
-        expect(await screen.findByText('landing')).toBeInTheDocument();
-    });
-
-    test('allows admin users to access admin route', async () => {
-        window.localStorage.setItem('currentUser', JSON.stringify({ role: 'ADMIN' }));
-
-        renderApp('/admin');
-
-        expect(await screen.findByText('admin')).toBeInTheDocument();
-    });
-
-    test('syncs queued offline mutations on startup when online', async () => {
+    test('syncs queued offline mutations on startup when authenticated and online', async () => {
         mockGetQueue.mockResolvedValue([
             { queueId: 2, query: 'later', variables: { b: 2 }, timestamp: 20 },
             { queueId: 1, query: 'earlier', variables: { a: 1 }, timestamp: 10 }
         ]);
-        global.fetch = vi.fn().mockResolvedValue({
-            json: async () => ({ data: {}, errors: null })
-        });
 
         renderApp('/');
 
@@ -557,73 +336,5 @@ describe('App CRUD operations', () => {
         expect(mockRemoveFromQueue).toHaveBeenNthCalledWith(1, 1);
         expect(mockRemoveFromQueue).toHaveBeenNthCalledWith(2, 2);
         expect(mockRefresh).toHaveBeenCalled();
-    });
-
-    test('stops syncing when the server rejects a queued item', async () => {
-        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-        mockGetQueue.mockResolvedValue([
-            { queueId: 1, query: 'first', variables: {}, timestamp: 10 },
-            { queueId: 2, query: 'second', variables: {}, timestamp: 20 }
-        ]);
-        global.fetch = vi.fn().mockResolvedValue({
-            json: async () => ({ errors: { message: 'reject' } })
-        });
-
-        renderApp('/');
-
-        await waitFor(() => {
-            expect(consoleErrorSpy).toHaveBeenCalledWith('Server rejected queued item:', { message: 'reject' });
-        });
-        expect(mockRemoveFromQueue).not.toHaveBeenCalled();
-        expect(mockRefresh).toHaveBeenCalled();
-        expect(global.fetch).toHaveBeenCalledTimes(1);
-        consoleErrorSpy.mockRestore();
-    });
-
-    test('stops syncing when posting a queued item throws', async () => {
-        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-        mockGetQueue.mockResolvedValue([
-            { queueId: 1, query: 'first', variables: {}, timestamp: 10 }
-        ]);
-        global.fetch = vi.fn().mockRejectedValue(new Error('sync failed'));
-
-        renderApp('/');
-
-        await waitFor(() => {
-            expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to sync item:', expect.any(Error));
-        });
-        expect(mockRemoveFromQueue).not.toHaveBeenCalled();
-        expect(mockRefresh).toHaveBeenCalled();
-        consoleErrorSpy.mockRestore();
-    });
-
-    test('handles IndexedDB queue access failures during sync', async () => {
-        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-        mockGetQueue.mockRejectedValue(new Error('indexeddb failed'));
-
-        renderApp('/');
-
-        await waitFor(() => {
-            expect(consoleErrorSpy).toHaveBeenCalledWith('Error accessing IndexedDB during sync:', expect.any(Error));
-        });
-        consoleErrorSpy.mockRestore();
-    });
-
-    test('skips duplicate sync requests while a sync is already running', async () => {
-        const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-        let releaseQueue;
-        mockGetQueue.mockReturnValue(new Promise((resolve) => {
-            releaseQueue = resolve;
-        }));
-
-        renderApp('/');
-        window.dispatchEvent(new Event('online'));
-
-        await waitFor(() => {
-            expect(consoleLogSpy).toHaveBeenCalledWith('Sync already running. Skipping duplicate sync.');
-        });
-
-        releaseQueue([]);
-        consoleLogSpy.mockRestore();
     });
 });

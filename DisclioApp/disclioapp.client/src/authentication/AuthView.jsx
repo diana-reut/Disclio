@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './AuthView.css';
+import { getGraphQLErrorMessage, graphqlRequest } from '../api/client';
 
 export function AuthView({ onLogin }) {
     const navigate = useNavigate();
@@ -17,6 +18,7 @@ export function AuthView({ onLogin }) {
     });
     const [errors, setErrors] = useState({});
     const [isShaking, setIsShaking] = useState(false);
+    const [serverMessage, setServerMessage] = useState('');
 
     const switchMode = (newMode) => {
         setFormData({
@@ -24,6 +26,7 @@ export function AuthView({ onLogin }) {
             email: '', confirmPassword: ''
         });
         setErrors({});
+        setServerMessage('');
         setMode(newMode);
     };
 
@@ -31,6 +34,7 @@ export function AuthView({ onLogin }) {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
         if (errors[name]) setErrors(prev => ({ ...prev, [name]: false }));
+        if (serverMessage) setServerMessage('');
     };
 
     const triggerShake = () => {
@@ -56,40 +60,52 @@ export function AuthView({ onLogin }) {
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
+            setServerMessage('');
             triggerShake();
             return;
         }
 
         // 2. Handle Database Operations (Signup)
         if (nextMode === 'success') {
-            const query = `mutation {
-                signup(
-                    username: "${formData.username}", 
-                    password: "${formData.password}", 
-                    firstName: "${formData.firstName}", 
-                    lastName: "${formData.lastName}", 
-                    email: "${formData.email}"
-                ) { id username }
-            }`;
+            const query = `
+                mutation Signup($username: String!, $password: String!, $firstName: String, $lastName: String, $email: String) {
+                    signup(
+                        username: $username,
+                        password: $password,
+                        firstName: $firstName,
+                        lastName: $lastName,
+                        email: $email
+                    ) {
+                        id
+                        username
+                    }
+                }
+            `;
 
             try {
-                const response = await fetch(`http://${window.location.hostname}:8080/graphql`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ query })
+                const result = await graphqlRequest({
+                    query,
+                    variables: {
+                        username: formData.username,
+                        password: formData.password,
+                        firstName: formData.firstName,
+                        lastName: formData.lastName,
+                        email: formData.email
+                    }
                 });
-
-                const result = await response.json();
                 if (result.data && result.data.signup) {
                     setMode('success');
                     setErrors({});
+                    setServerMessage('');
                 } else {
-                    console.error("Signup failed - user likely exists");
+                    const message = getGraphQLErrorMessage(result) || 'Signup failed.';
+                    console.error("Signup failed:", message);
+                    setServerMessage(message);
                     triggerShake();
                 }
             } catch (err) {
                 console.error("Server connection error", err);
+                setServerMessage('Could not reach the server.');
                 triggerShake();
             }
             return; // Exit function
@@ -97,48 +113,40 @@ export function AuthView({ onLogin }) {
 
         // 3. Handle Database Operations (Login)
         if (nextMode === 'master') {
-            const query = `{
-                login(username: "${formData.username}", password: "${formData.password}") {
-                    username firstName
-                    role {
-                        name
+            const query = `
+                mutation Login($username: String!, $password: String!) {
+                    login(username: $username, password: $password) {
+                        username
+                        firstName
+                        role {
+                            name
+                        }
                     }
                 }
-            }`;
+            `;
 
             try {
-                const response = await fetch(`http://${window.location.hostname}:8080/graphql`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ query })
+                const result = await graphqlRequest({
+                    query,
+                    variables: {
+                        username: formData.username,
+                        password: formData.password
+                    }
                 });
-
-                const result = await response.json();
-                console.log("RAW BACKEND RESPONSE:", JSON.stringify(result, null, 2));
                 if (result.data && result.data.login) {
                     const userData = result.data.login;
-                    const days = 7;
-                    const expires = new Date(Date.now() + days * 864e5).toUTCString();
-                    const storedUser = {
-                        username: userData.username,
-                        role: userData.role?.name || 'USER'
-                    };
-
-                    localStorage.setItem('currentUser', JSON.stringify(storedUser));
-                    onLogin?.(storedUser);
-                    window.dispatchEvent(new Event('currentUserChanged'));
-
-                    document.cookie = `username=${encodeURIComponent(result.data.login.username)}; expires=${expires}; path=/;`;
-                    document.cookie = `isLoggedIn=true; expires=${expires}; path=/;`;
-                    
+                    setServerMessage('');
+                    onLogin?.(userData);
                     navigate('/master-view');
                 } else {
+                    const message = getGraphQLErrorMessage(result) || 'Invalid username or password.';
                     setErrors({ username: true, password: true });
+                    setServerMessage(message);
                     triggerShake();
                 }
             } catch (err) {
                 console.error("Login connection error", err);
+                setServerMessage('Could not reach the server.');
                 triggerShake();
             }
             return; // Exit function
@@ -147,6 +155,7 @@ export function AuthView({ onLogin }) {
         // 4. Handle Navigation between signup steps
         setMode(nextMode);
         setErrors({});
+        setServerMessage('');
     };
 
     const renderContent = () => {
@@ -168,6 +177,7 @@ export function AuthView({ onLogin }) {
                             </div>
                         </div>
                         <button className="auth-btn main" onClick={() => handleAction('master', ['username', 'password'])}>LOGIN</button>
+                        {serverMessage && <small className="error-text">{serverMessage}</small>}
                         <p className="auth-footer">Don't have an account? <span onClick={() => switchMode('signup1')}>SIGN UP</span></p>
                     </div>
                 );
@@ -190,6 +200,7 @@ export function AuthView({ onLogin }) {
                             </div>
                         </div>
                         <button className="auth-btn main" onClick={() => handleAction('signup2', ['firstName', 'lastName', 'email'])}>CONTINUE</button>
+                        {serverMessage && <small className="error-text">{serverMessage}</small>}
                         <p className="auth-footer">Back to <span onClick={() => switchMode('login')}>LOGIN</span></p>
                     </div>
                 );
@@ -213,6 +224,7 @@ export function AuthView({ onLogin }) {
                             </div>
                         </div>
                         <button className="auth-btn main" onClick={() => handleAction('success', ['username', 'password', 'confirmPassword'])}>SIGN UP</button>
+                        {serverMessage && <small className="error-text">{serverMessage}</small>}
                     </div>
                 );
             case 'success':

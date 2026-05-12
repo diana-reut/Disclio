@@ -3,6 +3,7 @@ import { Client } from '@stomp/stompjs';
 import { GridView } from '../mainViews/GridView';
 import { StatisticsView } from '../statistics/StatisticsView';
 import './DashboardView.css';
+import { GRAPHQL_ENDPOINT, WS_ENDPOINT } from '../../api/client';
 
 export function DashboardView({
     cds,
@@ -20,7 +21,7 @@ export function DashboardView({
 
     useEffect(() => {
         stompClient.current = new Client({
-            brokerURL: `ws://${window.location.hostname}:8080/ws`,
+            brokerURL: WS_ENDPOINT,
             onConnect: () => {
                 console.log("Connected");
                 stompClient.current.subscribe('/topic/cds', () => {
@@ -42,7 +43,7 @@ export function DashboardView({
             : `mutation { startGenerator }`;
 
         try {
-            const response = await fetch(`http://${window.location.hostname}:8080/graphql`, {
+            const response = await fetch(GRAPHQL_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',

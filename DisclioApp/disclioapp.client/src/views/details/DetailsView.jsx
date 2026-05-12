@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import './DetailsView.css';
+import { GRAPHQL_ENDPOINT } from '../../api/client';
 
 export function DetailsView({ getCachedCDById }) {
     const { id } = useParams();
@@ -33,7 +34,7 @@ export function DetailsView({ getCachedCDById }) {
             }
         `;
 
-        fetch(`http://${window.location.hostname}:8080/graphql`, {
+        fetch(GRAPHQL_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
