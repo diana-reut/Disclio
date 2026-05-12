@@ -8,6 +8,8 @@ import com.example.DisclioApp.Server.model.PasswordResetResponse;
 import com.example.DisclioApp.Server.model.PasswordResetToken;
 import com.example.DisclioApp.Server.model.Permission;
 import com.example.DisclioApp.Server.model.Role;
+import com.example.DisclioApp.Server.model.ThreeWayLoginCodeResponse;
+import com.example.DisclioApp.Server.model.ThreeWayLoginStartResponse;
 import com.example.DisclioApp.Server.model.User;
 import com.example.DisclioApp.Server.repository.AuthSessionRepository;
 import com.example.DisclioApp.Server.repository.EmailLoginCodeRepository;
@@ -21,8 +23,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.Instant;
 import java.util.List;
@@ -65,6 +71,9 @@ class AuthServiceTest {
     @Mock
     private HttpServletResponse response;
 
+    @Mock
+    private TotpOperations totpService;
+
     private AuthProperties authProperties;
     private JwtService jwtService;
 
@@ -91,7 +100,8 @@ class AuthServiceTest {
                 passwordRecoveryNotifier,
                 passwordEncoder,
                 jwtService,
-                authProperties
+                authProperties,
+                totpService
         );
     }
 
@@ -212,6 +222,62 @@ class AuthServiceTest {
         assertThat(authenticatedUser.getUsername()).isEqualTo("alice");
         assertThat(code.getUsedAt()).isNotNull();
         verify(response).addHeader(any(String.class), any(String.class));
+    }
+
+    @Test
+    void beginSecureLoginSendsCodeWhenPasskeyIsRegistered() {
+        User user = new User();
+        user.setUsername("alice");
+        user.setEmail("alice@example.com");
+        user.setPassword("$2a$10$hashed-secret");
+        user.setTotpSecret("SECRET");
+        user.setTotpEnabled(true);
+
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("secret", "$2a$10$hashed-secret")).thenReturn(true);
+
+        ThreeWayLoginStartResponse response = authService.beginSecureLogin("alice", "secret");
+
+        assertThat(response.getPendingLoginId()).isNotBlank();
+        verify(emailLoginCodeNotifier).sendEmailLoginCode(any(User.class), any(String.class));
+    }
+
+    @Test
+    void verifySecureLoginCodeAllowsFinishingWithAuthenticatorCode() {
+        User user = new User();
+        user.setUsername("alice");
+        user.setEmail("alice@example.com");
+        user.setPassword("$2a$10$hashed-secret");
+        user.setTotpSecret("SECRET");
+        user.setTotpEnabled(true);
+        Role role = roleWithPermissions("USER", "READ_CD");
+        user.setRole(role);
+
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("secret", "$2a$10$hashed-secret")).thenReturn(true);
+        when(userRepository.findById(0)).thenReturn(Optional.of(user));
+        when(totpService.verifyCode("SECRET", "123456")).thenReturn(true);
+        when(authSessionRepository.save(any(AuthSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ThreeWayLoginStartResponse startResponse = authService.beginSecureLogin("alice", "secret");
+        org.mockito.ArgumentCaptor<String> codeCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(emailLoginCodeNotifier).sendEmailLoginCode(any(User.class), codeCaptor.capture());
+
+        ThreeWayLoginCodeResponse verificationResponse = authService.verifySecureLoginCode(
+                startResponse.getPendingLoginId(),
+                codeCaptor.getValue()
+        );
+
+        assertThat(verificationResponse.getPendingLoginId()).isEqualTo(startResponse.getPendingLoginId());
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse servletResponse = new MockHttpServletResponse();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request, servletResponse));
+        User authenticatedUser = authService.finishSecureLogin(startResponse.getPendingLoginId(), "123456");
+        RequestContextHolder.resetRequestAttributes();
+
+        assertThat(authenticatedUser.getUsername()).isEqualTo("alice");
+        verify(totpService).verifyCode("SECRET", "123456");
     }
 
     @Test

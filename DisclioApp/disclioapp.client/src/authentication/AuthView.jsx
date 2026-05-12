@@ -13,6 +13,9 @@ const DEFAULT_FORM_DATA = {
     confirmPassword: '',
     identifier: '',
     emailLoginCode: '',
+    securePendingLoginId: '',
+    secureLoginCode: '',
+    secureTotpCode: '',
     resetToken: '',
     newPassword: '',
     confirmNewPassword: ''
@@ -53,7 +56,7 @@ export function AuthView({ onLogin }) {
     const [serverMessage, setServerMessage] = useState(persistedState?.serverMessage || '');
 
     useEffect(() => {
-        const shouldPersist = ['forgotPassword', 'resetPassword', 'emailCodeRequest', 'emailCodeLogin'].includes(mode);
+        const shouldPersist = ['forgotPassword', 'resetPassword', 'emailCodeRequest', 'emailCodeLogin', 'secureLoginPassword', 'secureLoginCode', 'secureLoginTotp'].includes(mode);
 
         if (!shouldPersist) {
             window.sessionStorage.removeItem(AUTH_VIEW_STORAGE_KEY);
@@ -84,6 +87,41 @@ export function AuthView({ onLogin }) {
     const triggerShake = () => {
         setIsShaking(true);
         setTimeout(() => setIsShaking(false), 500);
+    };
+
+    const startSecureLoginFlow = async () => {
+        const query = `
+            mutation BeginSecureLogin($username: String!, $password: String!) {
+                beginSecureLogin(username: $username, password: $password) {
+                    message
+                    pendingLoginId
+                }
+            }
+        `;
+
+        const result = await graphqlRequest({
+            query,
+            variables: {
+                username: formData.username,
+                password: formData.password
+            }
+        });
+
+        if (result.data?.beginSecureLogin?.pendingLoginId) {
+            setFormData(prev => ({
+                ...prev,
+                identifier: formData.username,
+                securePendingLoginId: result.data.beginSecureLogin.pendingLoginId,
+                secureLoginCode: '',
+                secureTotpCode: ''
+            }));
+            setServerMessage(result.data.beginSecureLogin.message || 'Check your email for the login code.');
+            setErrors({});
+            setMode('secureLoginCode');
+            return { started: true, result };
+        }
+
+        return { started: false, result };
     };
 
     const handleAction = async (nextMode, fieldsToValidate) => {
@@ -175,6 +213,23 @@ export function AuthView({ onLogin }) {
             `;
 
             try {
+                const secureAttempt = await startSecureLoginFlow();
+                if (secureAttempt.started) {
+                    return;
+                }
+
+                const secureAttemptMessage = getGraphQLErrorMessage(secureAttempt.result);
+                const canFallBackToPasswordOnly = Boolean(
+                    secureAttemptMessage && /Set up authenticator verification in your account before using secure login/i.test(secureAttemptMessage)
+                );
+
+                if (!canFallBackToPasswordOnly && secureAttemptMessage) {
+                    setErrors({ username: true, password: true });
+                    setServerMessage(secureAttemptMessage);
+                    triggerShake();
+                    return;
+                }
+
                 const result = await graphqlRequest({
                     query,
                     variables: {
@@ -200,6 +255,103 @@ export function AuthView({ onLogin }) {
                 triggerShake();
             }
             return; // Exit function
+        }
+
+        if (nextMode === 'secure-login-password') {
+            try {
+                const secureAttempt = await startSecureLoginFlow();
+                if (secureAttempt.started) {
+                    return;
+                }
+
+                const message = getGraphQLErrorMessage(secureAttempt.result) || 'Secure login could not be started.';
+                setServerMessage(message);
+                setErrors({ username: true, password: true });
+                triggerShake();
+            } catch (err) {
+                console.error("Secure login start failed", err);
+                setServerMessage('Could not reach the server.');
+                triggerShake();
+            }
+            return;
+        }
+
+        if (nextMode === 'secure-login-code') {
+            const verifyCodeQuery = `
+                mutation VerifySecureLoginCode($pendingLoginId: String!, $code: String!) {
+                    verifySecureLoginCode(pendingLoginId: $pendingLoginId, code: $code) {
+                        message
+                        pendingLoginId
+                    }
+                }
+            `;
+
+            try {
+                const verificationResult = await graphqlRequest({
+                    query: verifyCodeQuery,
+                    variables: {
+                        pendingLoginId: formData.securePendingLoginId,
+                        code: formData.secureLoginCode
+                    }
+                });
+
+                if (verificationResult.data?.verifySecureLoginCode?.pendingLoginId) {
+                    setServerMessage(verificationResult.data.verifySecureLoginCode.message || 'Email code verified. Enter your authenticator code.');
+                    setErrors({});
+                    setMode('secureLoginTotp');
+                } else {
+                    const message = getGraphQLErrorMessage(verificationResult) || 'The email code is invalid or expired.';
+                    setServerMessage(message);
+                    setErrors({ secureLoginCode: true });
+                    triggerShake();
+                }
+            } catch (err) {
+                console.error("Secure login email verification failed", err);
+                setServerMessage('Could not reach the server.');
+                triggerShake();
+            }
+            return;
+        }
+
+        if (nextMode === 'secure-login-finish') {
+            const finishQuery = `
+                mutation FinishSecureLogin($pendingLoginId: String!, $totpCode: String!) {
+                    finishSecureLogin(pendingLoginId: $pendingLoginId, totpCode: $totpCode) {
+                        username
+                        firstName
+                        role {
+                            name
+                        }
+                    }
+                }
+            `;
+
+            try {
+                const finishResult = await graphqlRequest({
+                    query: finishQuery,
+                    variables: {
+                        pendingLoginId: formData.securePendingLoginId,
+                        totpCode: formData.secureTotpCode
+                    }
+                });
+
+                if (finishResult.data?.finishSecureLogin) {
+                    const userData = finishResult.data.finishSecureLogin;
+                    window.sessionStorage.removeItem(AUTH_VIEW_STORAGE_KEY);
+                    setServerMessage('');
+                    onLogin?.(userData);
+                    navigate('/master-view');
+                } else {
+                    const message = getGraphQLErrorMessage(finishResult) || 'Device verification failed.';
+                    setServerMessage(message);
+                    triggerShake();
+                }
+            } catch (err) {
+                console.error("Secure login authenticator verification failed", err);
+                setServerMessage('Could not reach the server.');
+                triggerShake();
+            }
+            return;
         }
 
         if (nextMode === 'email-code-request') {
@@ -373,9 +525,59 @@ export function AuthView({ onLogin }) {
                         </div>
                         <button className="auth-btn main" onClick={() => handleAction('master', ['username', 'password'])}>LOGIN</button>
                         {serverMessage && <small className="error-text">{serverMessage}</small>}
-                        <p className="auth-footer">Prefer a one-time code? <span onClick={() => switchMode('emailCodeRequest')}>EMAIL ME A CODE</span></p>
                         <p className="auth-footer">Forgot your password? <span onClick={() => switchMode('forgotPassword')}>RECOVER IT</span></p>
                         <p className="auth-footer">Don't have an account? <span onClick={() => switchMode('signup1')}>SIGN UP</span></p>
+                    </div>
+                );
+            case 'secureLoginPassword':
+                return (
+                    <div className={`auth-card ${isShaking ? 'shake' : ''}`}>
+                        <h2 className="auth-title">TRIPLE SECURE LOGIN</h2>
+                        <div className="auth-form-content">
+                            <div className="input-group">
+                                <label>Username</label>
+                                <input name="username" value={formData.username} className={getCls('username')} type="text" onChange={handleChange} />
+                            </div>
+                            <div className="input-group">
+                                <label>Password</label>
+                                <input name="password" value={formData.password} className={getCls('password')} type="password" onChange={handleChange} />
+                            </div>
+                        </div>
+                        <button className="auth-btn main" onClick={() => handleAction('secure-login-password', ['username', 'password'])}>VERIFY PASSWORD</button>
+                        {serverMessage && <small className="error-text">{serverMessage}</small>}
+                        <p className="auth-footer">Back to <span onClick={() => switchMode('login')}>LOGIN</span></p>
+                    </div>
+                );
+            case 'secureLoginCode':
+                return (
+                    <div className={`auth-card ${isShaking ? 'shake' : ''}`}>
+                        <h2 className="auth-title">EMAIL CHECK</h2>
+                        <div className="auth-form-content">
+                            <div className="input-group">
+                                <label>Email Code</label>
+                                <input name="secureLoginCode" value={formData.secureLoginCode} className={getCls('secureLoginCode')} type="text" onChange={handleChange} />
+                            </div>
+                        </div>
+                        <button className="auth-btn main" onClick={() => handleAction('secure-login-code', ['secureLoginCode'])}>VERIFY EMAIL CODE</button>
+                        {serverMessage && <small className="error-text">{serverMessage}</small>}
+                        <p className="auth-footer">Start over? <span onClick={() => switchMode('secureLoginPassword')}>PASSWORD STEP</span></p>
+                        <p className="auth-footer">Back to <span onClick={() => switchMode('login')}>LOGIN</span></p>
+                    </div>
+                );
+            case 'secureLoginTotp':
+                return (
+                    <div className={`auth-card ${isShaking ? 'shake' : ''}`}>
+                        <h2 className="auth-title">AUTHENTICATOR CHECK</h2>
+                        <div className="auth-form-content">
+                            <div className="input-group">
+                                <label>Authenticator Code</label>
+                                <input name="secureTotpCode" value={formData.secureTotpCode} className={getCls('secureTotpCode')} type="text" onChange={handleChange} />
+                            </div>
+                        </div>
+                        <button className="auth-btn main" onClick={() => handleAction('secure-login-finish', ['secureTotpCode'])}>VERIFY AUTHENTICATOR</button>
+                        {serverMessage && <small className="error-text">{serverMessage}</small>}
+                        <p className="auth-footer">Need to re-enter the email code? <span onClick={() => switchMode('secureLoginCode')}>EMAIL STEP</span></p>
+                        <p className="auth-footer">Back to <span onClick={() => switchMode('login')}>LOGIN</span></p>
                     </div>
                 );
             case 'emailCodeRequest':

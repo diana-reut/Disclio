@@ -84,14 +84,20 @@ extend type Query {
     me: User
     userExists(username: String!): Boolean
     getChatHistory(user1: String!, user2: String!): [ChatMessage]
+    totpEnabled: Boolean!
 }
 
 extend type Mutation {
     login(username: String!, password: String!): User
+    beginSecureLogin(username: String!, password: String!): ThreeWayLoginStartResponse
+    verifySecureLoginCode(pendingLoginId: String!, code: String!): ThreeWayLoginCodeResponse
+    finishSecureLogin(pendingLoginId: String!, totpCode: String!): User
     requestEmailLoginCode(identifier: String!): EmailLoginCodeResponse
     loginWithEmailCode(identifier: String!, code: String!): User
     requestPasswordReset(identifier: String!): PasswordResetResponse
     resetPassword(token: String!, newPassword: String!): Boolean
+    startTotpSetup: TotpSetupResponse
+    finishTotpSetup(code: String!): Boolean
     signup(
         username: String!,
         password: String!,
@@ -144,6 +150,21 @@ type PasswordResetResponse {
 
 type EmailLoginCodeResponse {
     message: String
+}
+
+type ThreeWayLoginStartResponse {
+    message: String
+    pendingLoginId: String
+}
+
+type ThreeWayLoginCodeResponse {
+    message: String
+    pendingLoginId: String
+}
+
+type TotpSetupResponse {
+    secret: String
+    otpauthUri: String
 }
 
 extend type Mutation {

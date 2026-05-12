@@ -3,11 +3,12 @@ package com.example.DisclioApp.Server.controller;
 import com.example.DisclioApp.Server.model.ChatMessage;
 import com.example.DisclioApp.Server.model.EmailLoginCodeResponse;
 import com.example.DisclioApp.Server.model.PasswordResetResponse;
+import com.example.DisclioApp.Server.model.ThreeWayLoginCodeResponse;
+import com.example.DisclioApp.Server.model.ThreeWayLoginStartResponse;
+import com.example.DisclioApp.Server.model.TotpSetupResponse;
 import com.example.DisclioApp.Server.model.User;
 import com.example.DisclioApp.Server.repository.UserRepository;
 import com.example.DisclioApp.Server.service.AuthService;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -19,7 +20,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Controller
@@ -28,7 +28,11 @@ public class UserGraphQLController {
     private final UserRepository userRepository;
     private final AuthService authService;
 
-    public UserGraphQLController(MongoTemplate mongoTemplate, UserRepository userRepository, AuthService authService) {
+    public UserGraphQLController(
+            MongoTemplate mongoTemplate,
+            UserRepository userRepository,
+            AuthService authService
+    ) {
         this.mongoTemplate = mongoTemplate;
         this.userRepository = userRepository;
         this.authService = authService;
@@ -44,6 +48,21 @@ public class UserGraphQLController {
     @MutationMapping
     public User login(@Argument String username, @Argument String password) {
         return authService.authenticate(username, password);
+    }
+
+    @MutationMapping
+    public ThreeWayLoginStartResponse beginSecureLogin(@Argument String username, @Argument String password) {
+        return authService.beginSecureLogin(username, password);
+    }
+
+    @MutationMapping
+    public ThreeWayLoginCodeResponse verifySecureLoginCode(@Argument String pendingLoginId, @Argument String code) {
+        return authService.verifySecureLoginCode(pendingLoginId, code);
+    }
+
+    @MutationMapping
+    public User finishSecureLogin(@Argument String pendingLoginId, @Argument String totpCode) {
+        return authService.finishSecureLogin(pendingLoginId, totpCode);
     }
 
     @MutationMapping
@@ -64,6 +83,24 @@ public class UserGraphQLController {
     @MutationMapping
     public boolean resetPassword(@Argument String token, @Argument String newPassword) {
         return authService.resetPassword(token, newPassword);
+    }
+
+    @QueryMapping
+    @PreAuthorize("isAuthenticated()")
+    public boolean totpEnabled(Authentication authentication) {
+        return resolveAuthenticatedUser(authentication).isTotpEnabled();
+    }
+
+    @MutationMapping
+    @PreAuthorize("isAuthenticated()")
+    public TotpSetupResponse startTotpSetup(Authentication authentication) {
+        return authService.startTotpSetup(resolveAuthenticatedUser(authentication));
+    }
+
+    @MutationMapping
+    @PreAuthorize("isAuthenticated()")
+    public boolean finishTotpSetup(@Argument String code, Authentication authentication) {
+        return authService.finishTotpSetup(resolveAuthenticatedUser(authentication), code);
     }
 
     @MutationMapping
@@ -95,5 +132,14 @@ public class UserGraphQLController {
                 )).with(Sort.by(Sort.Direction.ASC, "timestamp")),
                 ChatMessage.class
         );
+    }
+
+    private User resolveAuthenticatedUser(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
+            throw new IllegalStateException("No authenticated user available.");
+        }
+
+        return userRepository.findByUsername(user.getUsername())
+                .orElseThrow(() -> new IllegalStateException("Authenticated user no longer exists."));
     }
 }

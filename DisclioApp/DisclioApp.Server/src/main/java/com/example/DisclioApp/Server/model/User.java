@@ -15,6 +15,12 @@ public class User {
     private String firstName;
     private String lastName;
     private String email;
+    @Column(unique = true)
+    private String webauthnUserHandle;
+    @Column(length = 64)
+    private String totpSecret;
+    @Column(nullable = false, columnDefinition = "bit default 0")
+    private boolean totpEnabled = false;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")
@@ -52,6 +58,30 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getWebauthnUserHandle() {
+        return webauthnUserHandle;
+    }
+
+    public void setWebauthnUserHandle(String webauthnUserHandle) {
+        this.webauthnUserHandle = webauthnUserHandle;
+    }
+
+    public String getTotpSecret() {
+        return totpSecret;
+    }
+
+    public void setTotpSecret(String totpSecret) {
+        this.totpSecret = totpSecret;
+    }
+
+    public boolean isTotpEnabled() {
+        return totpEnabled;
+    }
+
+    public void setTotpEnabled(boolean totpEnabled) {
+        this.totpEnabled = totpEnabled;
     }
 
     public Integer getId() {

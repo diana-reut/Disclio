@@ -3,6 +3,12 @@ import React from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { DashboardView } from './DashboardView';
 
+vi.mock('qrcode', () => ({
+    default: {
+        toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,qr')
+    }
+}));
+
 vi.mock('../mainViews/GridView', () => ({
     GridView: () => <div>grid</div>
 }));
@@ -18,6 +24,18 @@ vi.mock('@stomp/stompjs', () => ({
         subscribe() {}
     }
 }));
+
+vi.mock('../../api/client', async () => {
+    const actual = await vi.importActual('../../api/client');
+    return {
+        ...actual,
+        graphqlRequest: vi.fn().mockResolvedValue({
+            data: {
+                totpEnabled: false
+            }
+        })
+    };
+});
 
 describe('DashboardView', () => {
     const baseProps = {

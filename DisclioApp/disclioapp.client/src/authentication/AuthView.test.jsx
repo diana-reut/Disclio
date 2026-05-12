@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+
 import { AuthView } from './AuthView';
 
 describe('AuthView', () => {
@@ -13,9 +14,9 @@ describe('AuthView', () => {
         });
     });
 
-    function renderAuthView(onLogin = vi.fn()) {
+    function renderAuthView(onLogin = vi.fn(), initialMode) {
         return render(
-            <MemoryRouter>
+            <MemoryRouter initialEntries={[initialMode ? { pathname: '/', state: { initialMode } } : '/']}>
                 <AuthView onLogin={onLogin} />
             </MemoryRouter>
         );
@@ -23,17 +24,25 @@ describe('AuthView', () => {
 
     test('logs in through the backend mutation and forwards the authenticated user', async () => {
         const onLogin = vi.fn();
-        global.fetch = vi.fn().mockResolvedValue({
-            json: async () => ({
-                data: {
-                    login: {
-                        username: 'alice',
-                        firstName: 'Alice',
-                        role: { name: 'USER' }
-                    }
-                }
+        global.fetch = vi.fn()
+            .mockResolvedValueOnce({
+                json: async () => ({
+                    errors: [
+                        { message: 'Set up authenticator verification in your account before using secure login.' }
+                    ]
+                })
             })
-        });
+            .mockResolvedValueOnce({
+                json: async () => ({
+                    data: {
+                        login: {
+                            username: 'alice',
+                            firstName: 'Alice',
+                            role: { name: 'USER' }
+                        }
+                    }
+                })
+            });
 
         const { container } = renderAuthView(onLogin);
         fireEvent.change(container.querySelector('input[name="username"]'), { target: { value: 'alice' } });
@@ -46,12 +55,15 @@ describe('AuthView', () => {
             }));
         });
 
-        const requestBody = JSON.parse(global.fetch.mock.calls[0][1].body);
-        expect(requestBody.query).toContain('mutation Login');
-        expect(requestBody.variables).toEqual({
+        const secureAttemptBody = JSON.parse(global.fetch.mock.calls[0][1].body);
+        expect(secureAttemptBody.query).toContain('mutation BeginSecureLogin');
+        expect(secureAttemptBody.variables).toEqual({
             username: 'alice',
             password: 'secret'
         });
+
+        const requestBody = JSON.parse(global.fetch.mock.calls[1][1].body);
+        expect(requestBody.query).toContain('mutation Login');
     });
 
     test('submits the signup mutation after the two-step registration flow', async () => {
@@ -171,9 +183,7 @@ describe('AuthView', () => {
                 })
             });
 
-        const { container } = renderAuthView(onLogin);
-
-        fireEvent.click(screen.getByText('EMAIL ME A CODE'));
+        const { container } = renderAuthView(onLogin, 'emailCodeRequest');
         fireEvent.change(container.querySelector('input[name="identifier"]'), { target: { value: 'alice@example.com' } });
         fireEvent.click(screen.getByRole('button', { name: 'SEND CODE' }));
 
@@ -201,6 +211,106 @@ describe('AuthView', () => {
         expect(secondRequestBody.variables).toEqual({
             identifier: 'alice@example.com',
             code: '123456'
+        });
+    });
+
+    test('completes the triple secure login flow', async () => {
+        const onLogin = vi.fn();
+        global.fetch = vi.fn()
+            .mockResolvedValueOnce({
+                json: async () => ({
+                    data: {
+                        beginSecureLogin: {
+                            message: 'Password verified. We sent a one-time code to your email. Enter it to continue to the authenticator step.',
+                            pendingLoginId: 'pending-123'
+                        }
+                    }
+                })
+            })
+            .mockResolvedValueOnce({
+                json: async () => ({
+                    data: {
+                        verifySecureLoginCode: {
+                            message: 'Email code verified. Enter your authenticator code to finish logging in.',
+                            pendingLoginId: 'pending-123'
+                        }
+                    }
+                })
+            })
+            .mockResolvedValueOnce({
+                json: async () => ({
+                    data: {
+                        finishSecureLogin: {
+                            username: 'alice',
+                            firstName: 'Alice',
+                            role: { name: 'USER' }
+                        }
+                    }
+                })
+            });
+
+        const { container } = renderAuthView(onLogin, 'secureLoginPassword');
+        fireEvent.change(container.querySelector('input[name="username"]'), { target: { value: 'alice' } });
+        fireEvent.change(container.querySelector('input[name="password"]'), { target: { value: 'secret' } });
+        fireEvent.click(screen.getByRole('button', { name: 'VERIFY PASSWORD' }));
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'VERIFY EMAIL CODE' })).toBeInTheDocument();
+        });
+
+        fireEvent.change(container.querySelector('input[name="secureLoginCode"]'), { target: { value: '654321' } });
+        fireEvent.click(screen.getByRole('button', { name: 'VERIFY EMAIL CODE' }));
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'VERIFY AUTHENTICATOR' })).toBeInTheDocument();
+        });
+
+        fireEvent.change(container.querySelector('input[name="secureTotpCode"]'), { target: { value: '112233' } });
+        fireEvent.click(screen.getByRole('button', { name: 'VERIFY AUTHENTICATOR' }));
+
+        await waitFor(() => {
+            expect(onLogin).toHaveBeenCalledWith(expect.objectContaining({
+                username: 'alice'
+            }));
+        });
+
+        const beginRequest = JSON.parse(global.fetch.mock.calls[0][1].body);
+        expect(beginRequest.query).toContain('mutation BeginSecureLogin');
+
+        const verifyRequest = JSON.parse(global.fetch.mock.calls[1][1].body);
+        expect(verifyRequest.query).toContain('mutation VerifySecureLoginCode');
+        expect(verifyRequest.variables).toEqual({
+            pendingLoginId: 'pending-123',
+            code: '654321'
+        });
+
+        const finishRequest = JSON.parse(global.fetch.mock.calls[2][1].body);
+        expect(finishRequest.query).toContain('mutation FinishSecureLogin');
+        expect(finishRequest.variables).toEqual({
+            pendingLoginId: 'pending-123',
+            totpCode: '112233'
+        });
+    });
+
+    test('auto-routes authenticator-enabled users into the secure flow from the normal login button', async () => {
+        global.fetch = vi.fn().mockResolvedValueOnce({
+            json: async () => ({
+                data: {
+                    beginSecureLogin: {
+                        message: 'Password verified. We sent a one-time code to your email. Enter it to continue to the authenticator step.',
+                        pendingLoginId: 'pending-123'
+                    }
+                }
+            })
+        });
+
+        const { container } = renderAuthView();
+        fireEvent.change(container.querySelector('input[name="username"]'), { target: { value: 'alice' } });
+        fireEvent.change(container.querySelector('input[name="password"]'), { target: { value: 'secret' } });
+        fireEvent.click(screen.getByRole('button', { name: 'LOGIN' }));
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'VERIFY EMAIL CODE' })).toBeInTheDocument();
         });
     });
 
@@ -239,5 +349,24 @@ describe('AuthView', () => {
         expect(container.querySelector('input[name="identifier"]').value).toBe('alice@example.com');
         expect(container.querySelector('input[name="emailLoginCode"]').value).toBe('654321');
         expect(screen.getByText('Check your email for the login code.')).toBeInTheDocument();
+    });
+
+    test('restores triple secure login step after a reload', () => {
+        window.sessionStorage.setItem('disclio_auth_view_state', JSON.stringify({
+            mode: 'secureLoginTotp',
+            formData: {
+                username: 'alice',
+                securePendingLoginId: 'pending-123',
+                secureLoginCode: '654321',
+                secureTotpCode: '112233'
+            },
+            serverMessage: 'Enter the code from Microsoft Authenticator to continue.'
+        }));
+
+        const { container } = renderAuthView();
+
+        expect(screen.getByRole('button', { name: 'VERIFY AUTHENTICATOR' })).toBeInTheDocument();
+        expect(container.querySelector('input[name="secureTotpCode"]').value).toBe('112233');
+        expect(screen.getByText('Enter the code from Microsoft Authenticator to continue.')).toBeInTheDocument();
     });
 });

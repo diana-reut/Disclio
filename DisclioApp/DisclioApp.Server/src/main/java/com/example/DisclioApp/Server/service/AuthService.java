@@ -8,6 +8,9 @@ import com.example.DisclioApp.Server.model.PasswordResetResponse;
 import com.example.DisclioApp.Server.model.PasswordResetToken;
 import com.example.DisclioApp.Server.model.Permission;
 import com.example.DisclioApp.Server.model.Role;
+import com.example.DisclioApp.Server.model.ThreeWayLoginCodeResponse;
+import com.example.DisclioApp.Server.model.ThreeWayLoginStartResponse;
+import com.example.DisclioApp.Server.model.TotpSetupResponse;
 import com.example.DisclioApp.Server.model.User;
 import com.example.DisclioApp.Server.repository.AuthSessionRepository;
 import com.example.DisclioApp.Server.repository.EmailLoginCodeRepository;
@@ -25,21 +28,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.security.MessageDigest;
-import java.security.SecureRandom;
-import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class AuthService {
     public static final String ACCESS_TOKEN_COOKIE = "disclio_access_token";
     private static final String PASSWORD_RESET_MESSAGE = "If that account exists, you can use the recovery token below to reset the password.";
     private static final String EMAIL_LOGIN_CODE_MESSAGE = "If that account exists, we sent a one-time login code to the email on file.";
+    private static final String SECURE_LOGIN_CODE_MESSAGE = "Password verified. We sent a one-time code to your email. Enter it to continue to the authenticator step.";
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserRepository userRepository;
@@ -52,6 +58,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthProperties authProperties;
+    private final TotpOperations totpService;
+    private final Map<String, PendingSecureLogin> pendingSecureLogins = new ConcurrentHashMap<>();
 
     public AuthService(
             UserRepository userRepository,
@@ -63,7 +71,8 @@ public class AuthService {
             PasswordRecoveryNotifier passwordRecoveryNotifier,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            AuthProperties authProperties
+            AuthProperties authProperties,
+            TotpOperations totpService
     ) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -75,6 +84,7 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authProperties = authProperties;
+        this.totpService = totpService;
     }
 
     public User register(String username, String password, String firstName, String lastName, String email) {
@@ -118,6 +128,118 @@ public class AuthService {
 
         createAuthenticatedSession(user, response);
         return user;
+    }
+
+    public ThreeWayLoginStartResponse beginSecureLogin(String username, String password) {
+        cleanupExpiredSecureLogins();
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new BadCredentialsException("Invalid username or password."));
+
+        String storedPassword = user.getPassword();
+        if (!isPasswordMatch(password, storedPassword)) {
+            throw new BadCredentialsException("Invalid username or password.");
+        }
+
+        if (!isBcryptHash(storedPassword)) {
+            user.setPassword(passwordEncoder.encode(password));
+            userRepository.save(user);
+        }
+
+        if (!user.isTotpEnabled() || user.getTotpSecret() == null || user.getTotpSecret().isBlank()) {
+            throw new IllegalStateException("Set up authenticator verification in your account before using secure login.");
+        }
+
+        removeExistingSecureLoginsForUser(user.getId());
+
+        String rawCode = generateEmailLoginCode();
+        String pendingLoginId = UUID.randomUUID().toString();
+        pendingSecureLogins.put(
+                pendingLoginId,
+                new PendingSecureLogin(
+                        user.getId(),
+                        hashToken(rawCode),
+                        Instant.now().plus(Duration.ofMinutes(authProperties.getEmailLoginCodeMinutes())),
+                        false
+                )
+        );
+        emailLoginCodeNotifier.sendEmailLoginCode(user, rawCode);
+
+        return new ThreeWayLoginStartResponse(SECURE_LOGIN_CODE_MESSAGE, pendingLoginId);
+    }
+
+    public ThreeWayLoginCodeResponse verifySecureLoginCode(String pendingLoginId, String code) {
+        cleanupExpiredSecureLogins();
+        PendingSecureLogin pendingSecureLogin = requirePendingSecureLogin(pendingLoginId);
+        if (!pendingSecureLogin.codeHash().equals(hashToken(code == null ? "" : code.trim()))) {
+            throw new BadCredentialsException("Invalid login code.");
+        }
+
+        User user = userRepository.findById(pendingSecureLogin.userId())
+                .orElseThrow(() -> new BadCredentialsException("Secure login could not be completed."));
+
+        pendingSecureLogins.put(
+                pendingLoginId,
+                new PendingSecureLogin(
+                        pendingSecureLogin.userId(),
+                        pendingSecureLogin.codeHash(),
+                        pendingSecureLogin.expiresAt(),
+                        true
+                )
+        );
+
+        return new ThreeWayLoginCodeResponse(
+                "Email code verified. Enter your authenticator code to finish logging in.",
+                pendingLoginId
+        );
+    }
+
+    public User finishSecureLogin(String pendingLoginId, String totpCode) {
+        cleanupExpiredSecureLogins();
+        PendingSecureLogin pendingSecureLogin = requirePendingSecureLogin(pendingLoginId);
+        if (!pendingSecureLogin.codeVerified()) {
+            throw new IllegalStateException("Verify the email code before entering your authenticator code.");
+        }
+
+        User user = userRepository.findById(pendingSecureLogin.userId())
+                .orElseThrow(() -> new BadCredentialsException("Secure login could not be completed."));
+
+        if (!totpService.verifyCode(user.getTotpSecret(), totpCode == null ? "" : totpCode.trim())) {
+            throw new BadCredentialsException("Invalid authenticator code.");
+        }
+
+        pendingSecureLogins.remove(pendingLoginId);
+        createAuthenticatedSession(user, currentResponse());
+        return user;
+    }
+
+    public TotpSetupResponse startTotpSetup(User user) {
+        User managedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new IllegalStateException("Authenticated user no longer exists."));
+
+        String secret = totpService.generateSecret();
+        managedUser.setTotpSecret(secret);
+        managedUser.setTotpEnabled(false);
+        userRepository.save(managedUser);
+
+        return new TotpSetupResponse(secret, totpService.buildOtpAuthUri(managedUser, secret));
+    }
+
+    public boolean finishTotpSetup(User user, String code) {
+        User managedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new IllegalStateException("Authenticated user no longer exists."));
+
+        if (managedUser.getTotpSecret() == null || managedUser.getTotpSecret().isBlank()) {
+            throw new IllegalStateException("Start authenticator setup first.");
+        }
+
+        if (!totpService.verifyCode(managedUser.getTotpSecret(), code == null ? "" : code.trim())) {
+            throw new BadCredentialsException("Invalid authenticator code.");
+        }
+
+        managedUser.setTotpEnabled(true);
+        userRepository.save(managedUser);
+        return true;
     }
 
     public EmailLoginCodeResponse requestEmailLoginCode(String identifier) {
@@ -429,6 +551,28 @@ public class AuthService {
         return "%06d".formatted(SECURE_RANDOM.nextInt(1_000_000));
     }
 
+    private PendingSecureLogin requirePendingSecureLogin(String pendingLoginId) {
+        if (pendingLoginId == null || pendingLoginId.isBlank()) {
+            throw new BadCredentialsException("Invalid secure login request.");
+        }
+
+        PendingSecureLogin pendingSecureLogin = pendingSecureLogins.get(pendingLoginId);
+        if (pendingSecureLogin == null || pendingSecureLogin.expiresAt().isBefore(Instant.now())) {
+            pendingSecureLogins.remove(pendingLoginId);
+            throw new IllegalStateException("This secure login request expired. Start again.");
+        }
+        return pendingSecureLogin;
+    }
+
+    private void removeExistingSecureLoginsForUser(int userId) {
+        pendingSecureLogins.entrySet().removeIf(entry -> entry.getValue().userId() == userId);
+    }
+
+    private void cleanupExpiredSecureLogins() {
+        Instant now = Instant.now();
+        pendingSecureLogins.entrySet().removeIf(entry -> entry.getValue().expiresAt().isBefore(now));
+    }
+
     private String hashToken(String rawToken) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -437,5 +581,13 @@ public class AuthService {
         } catch (Exception ex) {
             throw new IllegalStateException("Could not hash password reset token.", ex);
         }
+    }
+
+    private record PendingSecureLogin(
+            int userId,
+            String codeHash,
+            Instant expiresAt,
+            boolean codeVerified
+    ) {
     }
 }
