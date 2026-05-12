@@ -45,6 +45,7 @@ const getStoredCurrentUser = () => {
 function App() {
     const isSyncingRef = useRef(false);
     const hasInitialSyncRunRef = useRef(false);
+    const [currentUser, setCurrentUser] = useState(getStoredCurrentUser);
     const {
         cds,
         loadMore,
@@ -56,7 +57,6 @@ function App() {
         deleteCdOffline,
         getCachedCDById
     } = useCDPagination(10);
-    const currentUser = getStoredCurrentUser();
     const isAdmin = currentUser?.role === 'ADMIN';
 
     const GRAPHQL_ENDPOINT = `http://${window.location.hostname}:8080/graphql`;
@@ -165,14 +165,24 @@ function App() {
             syncOfflineData();
         };
 
+        const syncCurrentUser = () => {
+            setCurrentUser(getStoredCurrentUser());
+        };
+
         if (navigator.onLine) {
             syncOfflineData();
         }
 
         window.addEventListener('online', handleOnline);
+        window.addEventListener('storage', syncCurrentUser);
+        window.addEventListener('focus', syncCurrentUser);
+        window.addEventListener('currentUserChanged', syncCurrentUser);
 
         return () => {
             window.removeEventListener('online', handleOnline);
+            window.removeEventListener('storage', syncCurrentUser);
+            window.removeEventListener('focus', syncCurrentUser);
+            window.removeEventListener('currentUserChanged', syncCurrentUser);
         };
     }, []);
 
@@ -330,7 +340,7 @@ function App() {
                     }
                 />
                 <Route path="/" element={<LandingPage />} />
-                <Route path="/auth" element={<AuthView />} />
+                <Route path="/auth" element={<AuthView onLogin={setCurrentUser} />} />
 
                 <Route path="/master-view" element={
                     <ProtectedRoute>

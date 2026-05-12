@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './AuthView.css';
 
-export function AuthView() {
+export function AuthView({ onLogin }) {
     const navigate = useNavigate();
     const location = useLocation();
     const [mode, setMode] = useState(location.state?.initialMode || 'login');
@@ -120,11 +120,14 @@ export function AuthView() {
                     const userData = result.data.login;
                     const days = 7;
                     const expires = new Date(Date.now() + days * 864e5).toUTCString();
-
-                    localStorage.setItem('currentUser', JSON.stringify({
+                    const storedUser = {
                         username: userData.username,
                         role: userData.role?.name || 'USER'
-                    }));
+                    };
+
+                    localStorage.setItem('currentUser', JSON.stringify(storedUser));
+                    onLogin?.(storedUser);
+                    window.dispatchEvent(new Event('currentUserChanged'));
 
                     document.cookie = `username=${encodeURIComponent(result.data.login.username)}; expires=${expires}; path=/;`;
                     document.cookie = `isLoggedIn=true; expires=${expires}; path=/;`;
