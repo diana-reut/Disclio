@@ -2,12 +2,15 @@ package com.example.DisclioApp.Server.service;
 
 import com.example.DisclioApp.Server.config.AuthProperties;
 import com.example.DisclioApp.Server.model.AuthSession;
+import com.example.DisclioApp.Server.model.EmailLoginCode;
+import com.example.DisclioApp.Server.model.EmailLoginCodeResponse;
 import com.example.DisclioApp.Server.model.PasswordResetResponse;
 import com.example.DisclioApp.Server.model.PasswordResetToken;
 import com.example.DisclioApp.Server.model.Permission;
 import com.example.DisclioApp.Server.model.Role;
 import com.example.DisclioApp.Server.model.User;
 import com.example.DisclioApp.Server.repository.AuthSessionRepository;
+import com.example.DisclioApp.Server.repository.EmailLoginCodeRepository;
 import com.example.DisclioApp.Server.repository.PasswordResetTokenRepository;
 import com.example.DisclioApp.Server.repository.RoleRepository;
 import com.example.DisclioApp.Server.repository.UserRepository;
@@ -45,7 +48,13 @@ class AuthServiceTest {
     private AuthSessionRepository authSessionRepository;
 
     @Mock
+    private EmailLoginCodeRepository emailLoginCodeRepository;
+
+    @Mock
     private PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Mock
+    private EmailLoginCodeNotifier emailLoginCodeNotifier;
 
     @Mock
     private PasswordRecoveryNotifier passwordRecoveryNotifier;
@@ -68,6 +77,7 @@ class AuthServiceTest {
         authProperties.setAccessTokenMinutes(30);
         authProperties.setInactivityTimeoutMinutes(15);
         authProperties.setPasswordResetTokenMinutes(15);
+        authProperties.setEmailLoginCodeMinutes(10);
         authProperties.setSecureCookies(false);
 
         jwtService = new JwtService(authProperties);
@@ -75,7 +85,9 @@ class AuthServiceTest {
                 userRepository,
                 roleRepository,
                 authSessionRepository,
+                emailLoginCodeRepository,
                 passwordResetTokenRepository,
+                emailLoginCodeNotifier,
                 passwordRecoveryNotifier,
                 passwordEncoder,
                 jwtService,
@@ -152,6 +164,57 @@ class AuthServiceTest {
     }
 
     @Test
+    void requestEmailLoginCodeCreatesOneTimeCodeForKnownUser() {
+        User user = new User();
+        user.setUsername("alice");
+        user.setEmail("alice@example.com");
+
+        when(userRepository.findByUsername("alice@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(emailLoginCodeRepository.findByUserAndUsedAtIsNull(user)).thenReturn(List.of());
+        when(emailLoginCodeRepository.save(any(EmailLoginCode.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        EmailLoginCodeResponse response = authService.requestEmailLoginCode("alice@example.com");
+
+        assertThat(response.getMessage()).contains("If that account exists");
+        verify(emailLoginCodeRepository).save(any(EmailLoginCode.class));
+        verify(emailLoginCodeNotifier).sendEmailLoginCode(any(User.class), any(String.class));
+    }
+
+    @Test
+    void authenticateWithEmailCodeCreatesSessionForValidCode() {
+        Role userRole = roleWithPermissions("USER", "READ_CD");
+        User user = new User();
+        user.setUsername("alice");
+        user.setEmail("alice@example.com");
+        user.setRole(userRole);
+
+        when(userRepository.findByUsername("alice@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(emailLoginCodeRepository.findByUserAndUsedAtIsNull(user)).thenReturn(List.of());
+        when(emailLoginCodeRepository.save(any(EmailLoginCode.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        authService.requestEmailLoginCode("alice@example.com");
+
+        ArgumentCaptor<String> codeCaptor = ArgumentCaptor.forClass(String.class);
+        verify(emailLoginCodeNotifier).sendEmailLoginCode(any(User.class), codeCaptor.capture());
+
+        EmailLoginCode code = new EmailLoginCode();
+        code.setUser(user);
+        code.setCodeHash(hash(codeCaptor.getValue()));
+        code.setExpiresAt(Instant.now().plusSeconds(300));
+
+        when(emailLoginCodeRepository.findByUserAndUsedAtIsNull(user)).thenReturn(List.of(code));
+        when(authSessionRepository.save(any(AuthSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        User authenticatedUser = authService.authenticateWithEmailCode("alice@example.com", codeCaptor.getValue(), response);
+
+        assertThat(authenticatedUser.getUsername()).isEqualTo("alice");
+        assertThat(code.getUsedAt()).isNotNull();
+        verify(response).addHeader(any(String.class), any(String.class));
+    }
+
+    @Test
     void resetPasswordUpdatesPasswordAndRevokesSessions() {
         User user = new User();
         user.setUsername("alice");
@@ -195,5 +258,15 @@ class AuthServiceTest {
         }).collect(java.util.stream.Collectors.toSet());
         role.setPermissions(permissions);
         return role;
+    }
+
+    private String hash(String rawValue) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] bytes = digest.digest(rawValue.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return java.util.HexFormat.of().formatHex(bytes);
+        } catch (Exception ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 }

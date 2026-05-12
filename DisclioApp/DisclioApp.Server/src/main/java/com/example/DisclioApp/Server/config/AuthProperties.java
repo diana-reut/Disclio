@@ -8,6 +8,7 @@ public class AuthProperties {
     private long accessTokenMinutes;
     private long inactivityTimeoutMinutes;
     private long passwordResetTokenMinutes;
+    private long emailLoginCodeMinutes;
     private boolean secureCookies;
     private String sameSite;
 
@@ -41,6 +42,14 @@ public class AuthProperties {
 
     public void setPasswordResetTokenMinutes(long passwordResetTokenMinutes) {
         this.passwordResetTokenMinutes = passwordResetTokenMinutes;
+    }
+
+    public long getEmailLoginCodeMinutes() {
+        return emailLoginCodeMinutes;
+    }
+
+    public void setEmailLoginCodeMinutes(long emailLoginCodeMinutes) {
+        this.emailLoginCodeMinutes = emailLoginCodeMinutes;
     }
 
     public boolean isSecureCookies() {

@@ -88,6 +88,8 @@ extend type Query {
 
 extend type Mutation {
     login(username: String!, password: String!): User
+    requestEmailLoginCode(identifier: String!): EmailLoginCodeResponse
+    loginWithEmailCode(identifier: String!, code: String!): User
     requestPasswordReset(identifier: String!): PasswordResetResponse
     resetPassword(token: String!, newPassword: String!): Boolean
     signup(
@@ -138,6 +140,10 @@ extend type Query {
 type PasswordResetResponse {
     message: String
     resetToken: String
+}
+
+type EmailLoginCodeResponse {
+    message: String
 }
 
 extend type Mutation {

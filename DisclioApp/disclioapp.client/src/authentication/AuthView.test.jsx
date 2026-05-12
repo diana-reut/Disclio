@@ -147,6 +147,63 @@ describe('AuthView', () => {
         });
     });
 
+    test('requests an email login code and signs in with it', async () => {
+        const onLogin = vi.fn();
+        global.fetch = vi.fn()
+            .mockResolvedValueOnce({
+                json: async () => ({
+                    data: {
+                        requestEmailLoginCode: {
+                            message: 'If that account exists, we sent a one-time login code to the email on file.'
+                        }
+                    }
+                })
+            })
+            .mockResolvedValueOnce({
+                json: async () => ({
+                    data: {
+                        loginWithEmailCode: {
+                            username: 'alice',
+                            firstName: 'Alice',
+                            role: { name: 'USER' }
+                        }
+                    }
+                })
+            });
+
+        const { container } = renderAuthView(onLogin);
+
+        fireEvent.click(screen.getByText('EMAIL ME A CODE'));
+        fireEvent.change(container.querySelector('input[name="identifier"]'), { target: { value: 'alice@example.com' } });
+        fireEvent.click(screen.getByRole('button', { name: 'SEND CODE' }));
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'LOGIN WITH CODE' })).toBeInTheDocument();
+        });
+
+        fireEvent.change(container.querySelector('input[name="emailLoginCode"]'), { target: { value: '123456' } });
+        fireEvent.click(screen.getByRole('button', { name: 'LOGIN WITH CODE' }));
+
+        await waitFor(() => {
+            expect(onLogin).toHaveBeenCalledWith(expect.objectContaining({
+                username: 'alice'
+            }));
+        });
+
+        const firstRequestBody = JSON.parse(global.fetch.mock.calls[0][1].body);
+        expect(firstRequestBody.query).toContain('mutation RequestEmailLoginCode');
+        expect(firstRequestBody.variables).toEqual({
+            identifier: 'alice@example.com'
+        });
+
+        const secondRequestBody = JSON.parse(global.fetch.mock.calls[1][1].body);
+        expect(secondRequestBody.query).toContain('mutation LoginWithEmailCode');
+        expect(secondRequestBody.variables).toEqual({
+            identifier: 'alice@example.com',
+            code: '123456'
+        });
+    });
+
     test('restores password recovery step after a reload', () => {
         window.sessionStorage.setItem('disclio_auth_view_state', JSON.stringify({
             mode: 'resetPassword',
@@ -164,5 +221,23 @@ describe('AuthView', () => {
         expect(container.querySelector('input[name="resetToken"]').value).toBe('saved-token');
         expect(container.querySelector('input[name="newPassword"]').value).toBe('temp-secret');
         expect(screen.getByText('Check your email for the recovery token.')).toBeInTheDocument();
+    });
+
+    test('restores email code login step after a reload', () => {
+        window.sessionStorage.setItem('disclio_auth_view_state', JSON.stringify({
+            mode: 'emailCodeLogin',
+            formData: {
+                identifier: 'alice@example.com',
+                emailLoginCode: '654321'
+            },
+            serverMessage: 'Check your email for the login code.'
+        }));
+
+        const { container } = renderAuthView();
+
+        expect(screen.getByRole('button', { name: 'LOGIN WITH CODE' })).toBeInTheDocument();
+        expect(container.querySelector('input[name="identifier"]').value).toBe('alice@example.com');
+        expect(container.querySelector('input[name="emailLoginCode"]').value).toBe('654321');
+        expect(screen.getByText('Check your email for the login code.')).toBeInTheDocument();
     });
 });

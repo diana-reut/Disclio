@@ -8,7 +8,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 @Service
-public class PasswordRecoveryEmailService implements PasswordRecoveryNotifier {
+public class PasswordRecoveryEmailService implements PasswordRecoveryNotifier, EmailLoginCodeNotifier {
     private final JavaMailSender mailSender;
     private final AuthProperties authProperties;
     private final String fromAddress;
@@ -49,6 +49,35 @@ public class PasswordRecoveryEmailService implements PasswordRecoveryNotifier {
                 user.getFirstName() != null && !user.getFirstName().isBlank() ? user.getFirstName() : user.getUsername(),
                 rawToken,
                 authProperties.getPasswordResetTokenMinutes()
+        ));
+
+        mailSender.send(message);
+    }
+
+    @Override
+    public void sendEmailLoginCode(User user, String rawCode) {
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            return;
+        }
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        if (fromAddress != null && !fromAddress.isBlank()) {
+            message.setFrom(fromAddress);
+        }
+        message.setTo(user.getEmail());
+        message.setSubject("Disclio login code");
+        message.setText("""
+                Hello %s,
+
+                Here is your one-time login code:
+                %s
+
+                This code expires in %d minutes and can only be used once.
+                If you did not request this, you can ignore this email.
+                """.formatted(
+                user.getFirstName() != null && !user.getFirstName().isBlank() ? user.getFirstName() : user.getUsername(),
+                rawCode,
+                authProperties.getEmailLoginCodeMinutes()
         ));
 
         mailSender.send(message);

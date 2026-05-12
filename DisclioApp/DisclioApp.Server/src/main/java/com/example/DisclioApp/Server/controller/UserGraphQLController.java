@@ -1,6 +1,7 @@
 package com.example.DisclioApp.Server.controller;
 
 import com.example.DisclioApp.Server.model.ChatMessage;
+import com.example.DisclioApp.Server.model.EmailLoginCodeResponse;
 import com.example.DisclioApp.Server.model.PasswordResetResponse;
 import com.example.DisclioApp.Server.model.User;
 import com.example.DisclioApp.Server.repository.UserRepository;
@@ -43,6 +44,16 @@ public class UserGraphQLController {
     @MutationMapping
     public User login(@Argument String username, @Argument String password) {
         return authService.authenticate(username, password);
+    }
+
+    @MutationMapping
+    public EmailLoginCodeResponse requestEmailLoginCode(@Argument String identifier) {
+        return authService.requestEmailLoginCode(identifier);
+    }
+
+    @MutationMapping
+    public User loginWithEmailCode(@Argument String identifier, @Argument String code) {
+        return authService.authenticateWithEmailCode(identifier, code);
     }
 
     @MutationMapping

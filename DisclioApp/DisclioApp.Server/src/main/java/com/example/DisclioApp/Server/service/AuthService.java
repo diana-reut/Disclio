@@ -2,12 +2,15 @@ package com.example.DisclioApp.Server.service;
 
 import com.example.DisclioApp.Server.config.AuthProperties;
 import com.example.DisclioApp.Server.model.AuthSession;
+import com.example.DisclioApp.Server.model.EmailLoginCode;
+import com.example.DisclioApp.Server.model.EmailLoginCodeResponse;
 import com.example.DisclioApp.Server.model.PasswordResetResponse;
 import com.example.DisclioApp.Server.model.PasswordResetToken;
 import com.example.DisclioApp.Server.model.Permission;
 import com.example.DisclioApp.Server.model.Role;
 import com.example.DisclioApp.Server.model.User;
 import com.example.DisclioApp.Server.repository.AuthSessionRepository;
+import com.example.DisclioApp.Server.repository.EmailLoginCodeRepository;
 import com.example.DisclioApp.Server.repository.PasswordResetTokenRepository;
 import com.example.DisclioApp.Server.repository.RoleRepository;
 import com.example.DisclioApp.Server.repository.UserRepository;
@@ -29,17 +32,22 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.nio.charset.StandardCharsets;
 
 @Service
 public class AuthService {
     public static final String ACCESS_TOKEN_COOKIE = "disclio_access_token";
     private static final String PASSWORD_RESET_MESSAGE = "If that account exists, you can use the recovery token below to reset the password.";
+    private static final String EMAIL_LOGIN_CODE_MESSAGE = "If that account exists, we sent a one-time login code to the email on file.";
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final AuthSessionRepository authSessionRepository;
+    private final EmailLoginCodeRepository emailLoginCodeRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailLoginCodeNotifier emailLoginCodeNotifier;
     private final PasswordRecoveryNotifier passwordRecoveryNotifier;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -49,7 +57,9 @@ public class AuthService {
             UserRepository userRepository,
             RoleRepository roleRepository,
             AuthSessionRepository authSessionRepository,
+            EmailLoginCodeRepository emailLoginCodeRepository,
             PasswordResetTokenRepository passwordResetTokenRepository,
+            EmailLoginCodeNotifier emailLoginCodeNotifier,
             PasswordRecoveryNotifier passwordRecoveryNotifier,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
@@ -58,7 +68,9 @@ public class AuthService {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.authSessionRepository = authSessionRepository;
+        this.emailLoginCodeRepository = emailLoginCodeRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.emailLoginCodeNotifier = emailLoginCodeNotifier;
         this.passwordRecoveryNotifier = passwordRecoveryNotifier;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -104,14 +116,74 @@ public class AuthService {
             userRepository.save(user);
         }
 
-        AuthSession session = new AuthSession();
-        session.setUser(user);
-        session.setLastActivityAt(Instant.now());
-        session.setExpiresAt(session.getLastActivityAt().plus(Duration.ofMinutes(authProperties.getInactivityTimeoutMinutes())));
-        session.setRevoked(false);
-        authSessionRepository.save(session);
+        createAuthenticatedSession(user, response);
+        return user;
+    }
 
-        writeAccessTokenCookie(response, user, session);
+    public EmailLoginCodeResponse requestEmailLoginCode(String identifier) {
+        Optional<User> userOptional = findUserByIdentifier(identifier);
+        if (userOptional.isEmpty()) {
+            return new EmailLoginCodeResponse(EMAIL_LOGIN_CODE_MESSAGE);
+        }
+
+        User user = userOptional.get();
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            return new EmailLoginCodeResponse(EMAIL_LOGIN_CODE_MESSAGE);
+        }
+
+        Instant now = Instant.now();
+        emailLoginCodeRepository.findByUserAndUsedAtIsNull(user).forEach(existingCode -> {
+            existingCode.setUsedAt(now);
+            emailLoginCodeRepository.save(existingCode);
+        });
+
+        String rawCode = generateEmailLoginCode();
+        EmailLoginCode emailLoginCode = new EmailLoginCode();
+        emailLoginCode.setUser(user);
+        emailLoginCode.setCodeHash(hashToken(rawCode));
+        emailLoginCode.setExpiresAt(now.plus(Duration.ofMinutes(authProperties.getEmailLoginCodeMinutes())));
+        emailLoginCodeRepository.save(emailLoginCode);
+        emailLoginCodeNotifier.sendEmailLoginCode(user, rawCode);
+
+        return new EmailLoginCodeResponse(EMAIL_LOGIN_CODE_MESSAGE);
+    }
+
+    public User authenticateWithEmailCode(String identifier, String code) {
+        return authenticateWithEmailCode(identifier, code, currentResponse());
+    }
+
+    User authenticateWithEmailCode(String identifier, String code, HttpServletResponse response) {
+        if (identifier == null || identifier.isBlank() || code == null || code.isBlank()) {
+            throw new BadCredentialsException("Invalid login code.");
+        }
+
+        User user = findUserByIdentifier(identifier)
+                .orElseThrow(() -> new BadCredentialsException("Invalid login code."));
+
+        String hashedCode = hashToken(code.trim());
+        Instant now = Instant.now();
+        EmailLoginCode matchingCode = null;
+
+        for (EmailLoginCode emailLoginCode : emailLoginCodeRepository.findByUserAndUsedAtIsNull(user)) {
+            if (emailLoginCode.getExpiresAt().isBefore(now)) {
+                emailLoginCode.setUsedAt(now);
+                emailLoginCodeRepository.save(emailLoginCode);
+                continue;
+            }
+
+            if (emailLoginCode.getCodeHash().equals(hashedCode)) {
+                matchingCode = emailLoginCode;
+                break;
+            }
+        }
+
+        if (matchingCode == null) {
+            throw new BadCredentialsException("Invalid login code.");
+        }
+
+        matchingCode.setUsedAt(now);
+        emailLoginCodeRepository.save(matchingCode);
+        createAuthenticatedSession(user, response);
         return user;
     }
 
@@ -257,6 +329,17 @@ public class AuthService {
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
+    private void createAuthenticatedSession(User user, HttpServletResponse response) {
+        AuthSession session = new AuthSession();
+        session.setUser(user);
+        session.setLastActivityAt(Instant.now());
+        session.setExpiresAt(session.getLastActivityAt().plus(Duration.ofMinutes(authProperties.getInactivityTimeoutMinutes())));
+        session.setRevoked(false);
+        authSessionRepository.save(session);
+
+        writeAccessTokenCookie(response, user, session);
+    }
+
     private void writeAccessTokenCookie(HttpServletResponse response, User user, AuthSession session) {
         List<String> permissions = user.getRole().getPermissions().stream()
                 .map(Permission::getName)
@@ -340,6 +423,10 @@ public class AuthService {
 
         return userRepository.findByUsername(identifier)
                 .or(() -> userRepository.findByEmail(identifier));
+    }
+
+    private String generateEmailLoginCode() {
+        return "%06d".formatted(SECURE_RANDOM.nextInt(1_000_000));
     }
 
     private String hashToken(String rawToken) {

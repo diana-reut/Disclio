@@ -12,6 +12,7 @@ const DEFAULT_FORM_DATA = {
     email: '',
     confirmPassword: '',
     identifier: '',
+    emailLoginCode: '',
     resetToken: '',
     newPassword: '',
     confirmNewPassword: ''
@@ -52,7 +53,7 @@ export function AuthView({ onLogin }) {
     const [serverMessage, setServerMessage] = useState(persistedState?.serverMessage || '');
 
     useEffect(() => {
-        const shouldPersist = ['forgotPassword', 'resetPassword'].includes(mode);
+        const shouldPersist = ['forgotPassword', 'resetPassword', 'emailCodeRequest', 'emailCodeLogin'].includes(mode);
 
         if (!shouldPersist) {
             window.sessionStorage.removeItem(AUTH_VIEW_STORAGE_KEY);
@@ -201,6 +202,82 @@ export function AuthView({ onLogin }) {
             return; // Exit function
         }
 
+        if (nextMode === 'email-code-request') {
+            const query = `
+                mutation RequestEmailLoginCode($identifier: String!) {
+                    requestEmailLoginCode(identifier: $identifier) {
+                        message
+                    }
+                }
+            `;
+
+            try {
+                const result = await graphqlRequest({
+                    query,
+                    variables: {
+                        identifier: formData.identifier
+                    }
+                });
+
+                if (result.data?.requestEmailLoginCode) {
+                    setServerMessage(result.data.requestEmailLoginCode.message || 'Check your email for the login code.');
+                    setErrors({});
+                    setMode('emailCodeLogin');
+                } else {
+                    const message = getGraphQLErrorMessage(result) || 'Could not generate a login code.';
+                    setServerMessage(message);
+                    triggerShake();
+                }
+            } catch (err) {
+                console.error("Email login code request failed", err);
+                setServerMessage('Could not reach the server.');
+                triggerShake();
+            }
+            return;
+        }
+
+        if (nextMode === 'email-code-login') {
+            const query = `
+                mutation LoginWithEmailCode($identifier: String!, $code: String!) {
+                    loginWithEmailCode(identifier: $identifier, code: $code) {
+                        username
+                        firstName
+                        role {
+                            name
+                        }
+                    }
+                }
+            `;
+
+            try {
+                const result = await graphqlRequest({
+                    query,
+                    variables: {
+                        identifier: formData.identifier,
+                        code: formData.emailLoginCode
+                    }
+                });
+
+                if (result.data?.loginWithEmailCode) {
+                    const userData = result.data.loginWithEmailCode;
+                    window.sessionStorage.removeItem(AUTH_VIEW_STORAGE_KEY);
+                    setServerMessage('');
+                    onLogin?.(userData);
+                    navigate('/master-view');
+                } else {
+                    const message = getGraphQLErrorMessage(result) || 'Invalid or expired login code.';
+                    setErrors({ identifier: true, emailLoginCode: true });
+                    setServerMessage(message);
+                    triggerShake();
+                }
+            } catch (err) {
+                console.error("Email code login failed", err);
+                setServerMessage('Could not reach the server.');
+                triggerShake();
+            }
+            return;
+        }
+
         if (nextMode === 'recover-token') {
             const query = `
                 mutation RequestPasswordReset($identifier: String!) {
@@ -296,8 +373,44 @@ export function AuthView({ onLogin }) {
                         </div>
                         <button className="auth-btn main" onClick={() => handleAction('master', ['username', 'password'])}>LOGIN</button>
                         {serverMessage && <small className="error-text">{serverMessage}</small>}
+                        <p className="auth-footer">Prefer a one-time code? <span onClick={() => switchMode('emailCodeRequest')}>EMAIL ME A CODE</span></p>
                         <p className="auth-footer">Forgot your password? <span onClick={() => switchMode('forgotPassword')}>RECOVER IT</span></p>
                         <p className="auth-footer">Don't have an account? <span onClick={() => switchMode('signup1')}>SIGN UP</span></p>
+                    </div>
+                );
+            case 'emailCodeRequest':
+                return (
+                    <div className={`auth-card ${isShaking ? 'shake' : ''}`}>
+                        <h2 className="auth-title">EMAIL CODE LOGIN</h2>
+                        <div className="auth-form-content">
+                            <div className="input-group">
+                                <label>Username or Email</label>
+                                <input name="identifier" value={formData.identifier} className={getCls('identifier')} type="text" onChange={handleChange} />
+                            </div>
+                        </div>
+                        <button className="auth-btn main" onClick={() => handleAction('email-code-request', ['identifier'])}>SEND CODE</button>
+                        {serverMessage && <small className="error-text">{serverMessage}</small>}
+                        <p className="auth-footer">Back to <span onClick={() => switchMode('login')}>LOGIN</span></p>
+                    </div>
+                );
+            case 'emailCodeLogin':
+                return (
+                    <div className={`auth-card ${isShaking ? 'shake' : ''}`}>
+                        <h2 className="auth-title">ENTER LOGIN CODE</h2>
+                        <div className="auth-form-content">
+                            <div className="input-group">
+                                <label>Username or Email</label>
+                                <input name="identifier" value={formData.identifier} className={getCls('identifier')} type="text" onChange={handleChange} />
+                            </div>
+                            <div className="input-group">
+                                <label>Login Code</label>
+                                <input name="emailLoginCode" value={formData.emailLoginCode} className={getCls('emailLoginCode')} type="text" onChange={handleChange} />
+                            </div>
+                        </div>
+                        <button className="auth-btn main" onClick={() => handleAction('email-code-login', ['identifier', 'emailLoginCode'])}>LOGIN WITH CODE</button>
+                        {serverMessage && <small className="error-text">{serverMessage}</small>}
+                        <p className="auth-footer">Need a new code? <span onClick={() => switchMode('emailCodeRequest')}>SEND AGAIN</span></p>
+                        <p className="auth-footer">Back to <span onClick={() => switchMode('login')}>PASSWORD LOGIN</span></p>
                     </div>
                 );
             case 'forgotPassword':
