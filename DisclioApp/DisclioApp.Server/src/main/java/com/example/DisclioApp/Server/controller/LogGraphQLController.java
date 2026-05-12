@@ -18,8 +18,21 @@ public class LogGraphQLController {
     }
 
     @QueryMapping
+    @PreAuthorize("hasAuthority('VIEW_LOG')")
     public List<Log> getSystemLogs() {
         return logService.getAllLogs();
+    }
+
+    @QueryMapping
+    @PreAuthorize("hasAuthority('VIEW_LOG')")
+    public List<Log> pagedSystemLogs(@Argument int page, @Argument int size) {
+        return logService.getPagedLogs(page, size);
+    }
+
+    @QueryMapping
+    @PreAuthorize("hasAuthority('VIEW_LOG')")
+    public int totalLogCount() {
+        return logService.count();
     }
 
     @MutationMapping

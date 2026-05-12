@@ -7,6 +7,7 @@
     max-width: 1000px;
     margin: 5vh auto;
     font-family: 'Courier New', Courier, monospace;
+    gap: 24px;
 }
 
 .admin-header h2 {
@@ -32,12 +33,36 @@
     font-size: 1.2rem;
 }
 
+.admin-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.section-heading h3 {
+    color: white;
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.section-heading p {
+    margin: 4px 0 0;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.admin-empty {
+    background: rgba(230, 210, 230, 0.7);
+    border-radius: 8px;
+    padding: 24px;
+    color: #333;
+}
+
 .table-wrapper {
     background: rgba(230, 210, 230, 0.7);
     border-radius: 8px;
     padding: 20px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    overflow-x: auto; 
+    overflow-x: auto;
 }
 
 .admin-table {
@@ -84,8 +109,24 @@
     font-weight: bold;
 }
 
+.role-cell {
+    font-weight: bold;
+    color: #6f3cc3;
+}
+
+.action-cell {
+    color: #333;
+}
+
 .time-cell {
     color: #666; 
+}
+
+.admin-load-state {
+    min-height: 40px;
+    margin: 8px 0 20px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.85);
 }
 
 

@@ -127,6 +127,8 @@ type Log {
 
 extend type Query {
     getSystemLogs: [Log]
+    pagedSystemLogs(page: Int!, size: Int!): [Log]
+    totalLogCount: Int
 }
 
 extend type Mutation {
