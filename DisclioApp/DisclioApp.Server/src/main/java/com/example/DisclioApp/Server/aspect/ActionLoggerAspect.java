@@ -45,6 +45,10 @@ public class ActionLoggerAspect {
         if (result instanceof User user) {
             userId = user.getId();
             role = "USER";
+
+            if(user.getRole().getName().equals("ADMIN")){
+                role = "ADMIN";
+            }
         }
 
         else {
@@ -64,6 +68,10 @@ public class ActionLoggerAspect {
                         if (dbUser != null) {
                             userId = dbUser.getId();
                             role = "USER";
+
+                            if(dbUser.getRole().getName().equals("ADMIN")){
+                                role = "ADMIN";
+                            }
                         }
                     }
                 }
@@ -81,6 +89,10 @@ public class ActionLoggerAspect {
                     if (dbUser != null) {
                         userId = dbUser.getId();
                         role = "USER";
+
+                        if(dbUser.getRole().getName().equals("ADMIN")){
+                            role = "ADMIN";
+                        }
                     }
                 }
             }

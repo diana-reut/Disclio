@@ -38,8 +38,6 @@ public class WebSocketSessionListener {
         String sessionId = event.getSessionId();
         sessions.remove(sessionId);
 
-        // Optional: Add a slight delay check here
-        // to see if a new session connected immediately (refresh case)
         if (sessions.isEmpty()) {
             generatorService.stop();
         }
