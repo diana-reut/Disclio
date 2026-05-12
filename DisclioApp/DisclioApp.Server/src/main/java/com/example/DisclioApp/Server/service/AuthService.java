@@ -40,6 +40,7 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final AuthSessionRepository authSessionRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final PasswordRecoveryNotifier passwordRecoveryNotifier;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthProperties authProperties;
@@ -49,6 +50,7 @@ public class AuthService {
             RoleRepository roleRepository,
             AuthSessionRepository authSessionRepository,
             PasswordResetTokenRepository passwordResetTokenRepository,
+            PasswordRecoveryNotifier passwordRecoveryNotifier,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
             AuthProperties authProperties
@@ -57,6 +59,7 @@ public class AuthService {
         this.roleRepository = roleRepository;
         this.authSessionRepository = authSessionRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.passwordRecoveryNotifier = passwordRecoveryNotifier;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authProperties = authProperties;
@@ -201,8 +204,9 @@ public class AuthService {
         resetToken.setTokenHash(hashToken(rawToken));
         resetToken.setExpiresAt(now.plus(Duration.ofMinutes(authProperties.getPasswordResetTokenMinutes())));
         passwordResetTokenRepository.save(resetToken);
+        passwordRecoveryNotifier.sendPasswordResetToken(user, rawToken);
 
-        return new PasswordResetResponse(PASSWORD_RESET_MESSAGE, rawToken);
+        return new PasswordResetResponse(PASSWORD_RESET_MESSAGE, null);
     }
 
     public boolean resetPassword(String token, String newPassword) {

@@ -1,39 +1,75 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './AuthView.css';
 import { getGraphQLErrorMessage, graphqlRequest } from '../api/client';
 
+const AUTH_VIEW_STORAGE_KEY = 'disclio_auth_view_state';
+const DEFAULT_FORM_DATA = {
+    username: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    confirmPassword: '',
+    identifier: '',
+    resetToken: '',
+    newPassword: '',
+    confirmNewPassword: ''
+};
+
+function readPersistedAuthViewState() {
+    try {
+        const raw = window.sessionStorage.getItem(AUTH_VIEW_STORAGE_KEY);
+        if (!raw) {
+            return null;
+        }
+
+        const parsed = JSON.parse(raw);
+        return {
+            mode: parsed.mode,
+            formData: {
+                ...DEFAULT_FORM_DATA,
+                ...parsed.formData
+            },
+            serverMessage: typeof parsed.serverMessage === 'string' ? parsed.serverMessage : ''
+        };
+    } catch {
+        return null;
+    }
+}
+
 export function AuthView({ onLogin }) {
     const navigate = useNavigate();
     const location = useLocation();
-    const [mode, setMode] = useState(location.state?.initialMode || 'login');
+    const persistedState = readPersistedAuthViewState();
+    const [mode, setMode] = useState(
+        persistedState?.mode || location.state?.initialMode || 'login'
+    );
 
-    const [formData, setFormData] = useState({
-        username: '',
-        password: '',
-        firstName: '',
-        lastName: '',
-        email: '',
-        confirmPassword: '',
-        identifier: '',
-        resetToken: '',
-        newPassword: '',
-        confirmNewPassword: ''
-    });
+    const [formData, setFormData] = useState(persistedState?.formData || DEFAULT_FORM_DATA);
     const [errors, setErrors] = useState({});
     const [isShaking, setIsShaking] = useState(false);
-    const [serverMessage, setServerMessage] = useState('');
-    const [recoveryToken, setRecoveryToken] = useState('');
+    const [serverMessage, setServerMessage] = useState(persistedState?.serverMessage || '');
+
+    useEffect(() => {
+        const shouldPersist = ['forgotPassword', 'resetPassword'].includes(mode);
+
+        if (!shouldPersist) {
+            window.sessionStorage.removeItem(AUTH_VIEW_STORAGE_KEY);
+            return;
+        }
+
+        window.sessionStorage.setItem(AUTH_VIEW_STORAGE_KEY, JSON.stringify({
+            mode,
+            formData,
+            serverMessage
+        }));
+    }, [formData, mode, serverMessage]);
 
     const switchMode = (newMode) => {
-        setFormData({
-            username: '', password: '', firstName: '', lastName: '',
-            email: '', confirmPassword: '', identifier: '',
-            resetToken: '', newPassword: '', confirmNewPassword: ''
-        });
+        setFormData(DEFAULT_FORM_DATA);
         setErrors({});
         setServerMessage('');
-        setRecoveryToken('');
         setMode(newMode);
     };
 
@@ -105,6 +141,7 @@ export function AuthView({ onLogin }) {
                     }
                 });
                 if (result.data && result.data.signup) {
+                    window.sessionStorage.removeItem(AUTH_VIEW_STORAGE_KEY);
                     setMode('success');
                     setErrors({});
                     setServerMessage('');
@@ -146,6 +183,7 @@ export function AuthView({ onLogin }) {
                 });
                 if (result.data && result.data.login) {
                     const userData = result.data.login;
+                    window.sessionStorage.removeItem(AUTH_VIEW_STORAGE_KEY);
                     setServerMessage('');
                     onLogin?.(userData);
                     navigate('/master-view');
@@ -182,8 +220,7 @@ export function AuthView({ onLogin }) {
                 });
 
                 if (result.data?.requestPasswordReset) {
-                    setRecoveryToken(result.data.requestPasswordReset.resetToken || '');
-                    setServerMessage(result.data.requestPasswordReset.message || 'Recovery token generated.');
+                    setServerMessage(result.data.requestPasswordReset.message || 'Check your email for the recovery token.');
                     setErrors({});
                     setMode('resetPassword');
                 } else {
@@ -216,7 +253,7 @@ export function AuthView({ onLogin }) {
                 });
 
                 if (result.data?.resetPassword) {
-                    setRecoveryToken('');
+                    window.sessionStorage.removeItem(AUTH_VIEW_STORAGE_KEY);
                     setErrors({});
                     setServerMessage('');
                     setMode('resetSuccess');
@@ -296,7 +333,6 @@ export function AuthView({ onLogin }) {
                                 <input name="confirmNewPassword" value={formData.confirmNewPassword} className={getCls('confirmNewPassword')} type="password" onChange={handleChange} />
                                 {errors.confirmNewPassword && <small className="error-text">Passwords do not match</small>}
                             </div>
-                            {recoveryToken && <small className="error-text">Demo recovery token: {recoveryToken}</small>}
                         </div>
                         <button className="auth-btn main" onClick={() => handleAction('reset-complete', ['resetToken', 'newPassword', 'confirmNewPassword'])}>RESET PASSWORD</button>
                         {serverMessage && <small className="error-text">{serverMessage}</small>}

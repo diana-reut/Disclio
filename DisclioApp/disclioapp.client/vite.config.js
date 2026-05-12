@@ -51,7 +51,8 @@ export default defineConfig(({ mode }) => {
                 clientPort: 5173
             } : undefined,
             port: 5173,
-            strictPort: true
+            strictPort: true,
+            open: 'https://192.168.101.99:5173'
         },
         optimizeDeps: {
             include: ['recharts'],

@@ -48,6 +48,9 @@ class AuthServiceTest {
     private PasswordResetTokenRepository passwordResetTokenRepository;
 
     @Mock
+    private PasswordRecoveryNotifier passwordRecoveryNotifier;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     @Mock
@@ -73,6 +76,7 @@ class AuthServiceTest {
                 roleRepository,
                 authSessionRepository,
                 passwordResetTokenRepository,
+                passwordRecoveryNotifier,
                 passwordEncoder,
                 jwtService,
                 authProperties
@@ -142,8 +146,9 @@ class AuthServiceTest {
         PasswordResetResponse response = authService.requestPasswordReset("alice@example.com");
 
         assertThat(response.getMessage()).contains("If that account exists");
-        assertThat(response.getResetToken()).isNotBlank();
+        assertThat(response.getResetToken()).isNull();
         verify(passwordResetTokenRepository).save(any(PasswordResetToken.class));
+        verify(passwordRecoveryNotifier).sendPasswordResetToken(any(User.class), any(String.class));
     }
 
     @Test
@@ -159,12 +164,14 @@ class AuthServiceTest {
         session.setUser(user);
         session.setRevoked(false);
 
-        PasswordResetResponse issued = issueResetTokenFor(user, "alice");
+        issueResetTokenFor(user, "alice");
+        ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
+        verify(passwordRecoveryNotifier).sendPasswordResetToken(any(User.class), tokenCaptor.capture());
         when(passwordResetTokenRepository.findByTokenHashAndUsedAtIsNull(any(String.class))).thenReturn(Optional.of(token));
         when(passwordEncoder.encode("new-secret")).thenReturn("hashed-new-secret");
         when(authSessionRepository.findByUserAndRevokedFalse(user)).thenReturn(List.of(session));
 
-        boolean reset = authService.resetPassword(issued.getResetToken(), "new-secret");
+        boolean reset = authService.resetPassword(tokenCaptor.getValue(), "new-secret");
 
         assertThat(reset).isTrue();
         assertThat(user.getPassword()).isEqualTo("hashed-new-secret");

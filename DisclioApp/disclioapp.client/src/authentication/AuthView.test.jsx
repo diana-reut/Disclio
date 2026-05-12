@@ -7,6 +7,7 @@ import { AuthView } from './AuthView';
 describe('AuthView', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        window.sessionStorage.clear();
         global.fetch = vi.fn().mockResolvedValue({
             json: async () => ({ data: {} })
         });
@@ -100,7 +101,7 @@ describe('AuthView', () => {
                     data: {
                         requestPasswordReset: {
                             message: 'If that account exists, you can use the recovery token below to reset the password.',
-                            resetToken: 'demo-token-123'
+                            resetToken: null
                         }
                     }
                 })
@@ -120,7 +121,7 @@ describe('AuthView', () => {
         fireEvent.click(screen.getByRole('button', { name: 'GET TOKEN' }));
 
         await waitFor(() => {
-            expect(screen.getByText(/Demo recovery token:/)).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'RESET PASSWORD' })).toBeInTheDocument();
         });
 
         fireEvent.change(container.querySelector('input[name="resetToken"]'), { target: { value: 'demo-token-123' } });
@@ -144,5 +145,24 @@ describe('AuthView', () => {
             token: 'demo-token-123',
             newPassword: 'new-secret'
         });
+    });
+
+    test('restores password recovery step after a reload', () => {
+        window.sessionStorage.setItem('disclio_auth_view_state', JSON.stringify({
+            mode: 'resetPassword',
+            formData: {
+                identifier: 'alice@example.com',
+                resetToken: 'saved-token',
+                newPassword: 'temp-secret'
+            },
+            serverMessage: 'Check your email for the recovery token.'
+        }));
+
+        const { container } = renderAuthView();
+
+        expect(screen.getByRole('button', { name: 'RESET PASSWORD' })).toBeInTheDocument();
+        expect(container.querySelector('input[name="resetToken"]').value).toBe('saved-token');
+        expect(container.querySelector('input[name="newPassword"]').value).toBe('temp-secret');
+        expect(screen.getByText('Check your email for the recovery token.')).toBeInTheDocument();
     });
 });

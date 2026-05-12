@@ -13,7 +13,8 @@ export function DashboardView({
     loadMore,
     hasMore,
     loading,
-    refresh 
+    refresh,
+    isAdmin = false
 }) {
     const [isAutoAdding, setIsAutoAdding] = useState(false);
 
@@ -69,16 +70,20 @@ export function DashboardView({
             <div className="dashboard-container">
 
                 <header className="dashboard-header">
-                    <button
-                        onClick={toggleAutoAdd}
-                        className={`small-btn ${isAutoAdding ? 'active-stop' : ''}`}
-                    >
-                        {isAutoAdding ? 'Stop Generator' : 'Start Generator'}
-                    </button>
+                    {isAdmin && (
+                        <>
+                            <button
+                                onClick={toggleAutoAdd}
+                                className={`small-btn ${isAutoAdding ? 'active-stop' : ''}`}
+                            >
+                                {isAutoAdding ? 'Stop Generator' : 'Start Generator'}
+                            </button>
 
-                    <span style={{ marginLeft: '15px' }}>
-                        {isAutoAdding ? "Running..." : "Stopped"}
-                    </span>
+                            <span style={{ marginLeft: '15px' }}>
+                                {isAutoAdding ? "Running..." : "Stopped"}
+                            </span>
+                        </>
+                    )}
                 </header>
 
                 <div className="dashboard-grid">

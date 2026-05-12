@@ -444,6 +444,7 @@ function App() {
                             hasMore={hasMore}
                             loading={loading}
                             refresh={refresh}
+                            isAdmin={isAdmin}
                         />
                     </ProtectedRoute>
                 } />
