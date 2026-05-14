@@ -3,6 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import './AddCDForm.css';
 import { GRAPHQL_ENDPOINT } from '../api/client';
 
+function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error || new Error('Failed to read file.'));
+        reader.readAsDataURL(file);
+    });
+}
+
 export function AddCDForm({ saveCD, getCachedCDById }) {
     const navigate = useNavigate();
     const { id } = useParams();
@@ -97,14 +106,25 @@ export function AddCDForm({ saveCD, getCachedCDById }) {
         setSongs(songs.filter((_, index) => index !== indexToRemove));
     };
 
-    const handlePhotoUpload = (e) => {
+    const handlePhotoUpload = async (e) => {
         const files = Array.from(e.target.files);
-        const newPhotos = files.map(file => URL.createObjectURL(file));
-        setPhotos([...photos, ...newPhotos]);
+        if (files.length === 0) {
+            return;
+        }
+
+        try {
+            const newPhotos = await Promise.all(files.map(readFileAsDataUrl));
+            setPhotos(currentPhotos => [...currentPhotos, ...newPhotos]);
+        } catch (error) {
+            console.error("Failed to process photo upload:", error);
+            alert("Failed to upload one or more photos.");
+        } finally {
+            e.target.value = '';
+        }
     };
 
     const removePhoto = (indexToRemove) => {
-        setPhotos(photos.filter((_, index) => index !== indexToRemove));
+        setPhotos(currentPhotos => currentPhotos.filter((_, index) => index !== indexToRemove));
     };
 
     const handleSubmit = async (e) => {
@@ -119,7 +139,7 @@ export function AddCDForm({ saveCD, getCachedCDById }) {
             return;
         }
 
-        const cover = photos.length > 0 ? photos : null;
+        const cover = photos.length > 0 ? photos[0] : null;
         const cdPayload = { ...formData, songs, photos, cover };
 
         try {

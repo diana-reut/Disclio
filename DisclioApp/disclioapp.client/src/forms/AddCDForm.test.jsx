@@ -25,7 +25,21 @@ describe('AddCDForm Component', () => {
         mockGetCachedCDById.mockReset();
         fetch.mockReset();
         window.alert = vi.fn();
-        global.URL.createObjectURL = vi.fn((file) => `blob:${file.name}`);
+        global.FileReader = class {
+            constructor() {
+                this.result = null;
+                this.onload = null;
+                this.onerror = null;
+                this.error = null;
+            }
+
+            readAsDataURL(file) {
+                this.result = `data:${file.type};base64,${file.name}`;
+                if (this.onload) {
+                    this.onload({ target: { result: this.result } });
+                }
+            }
+        };
     });
 
     function renderInAddMode() {
@@ -306,7 +320,7 @@ describe('AddCDForm Component', () => {
         expect(window.alert).toHaveBeenCalledWith('Updated successfully!');
     });
 
-    test('uploads photos, removes them, and submits the cover array', async () => {
+    test('uploads photos, removes them, and submits the first remaining photo as the cover', async () => {
         mockSaveCD.mockResolvedValueOnce({ success: true });
         renderInAddMode();
 
@@ -319,17 +333,21 @@ describe('AddCDForm Component', () => {
         const fileB = new File(['b'], 'cover-b.png', { type: 'image/png' });
         fireEvent.change(photoInput, { target: { files: [fileA, fileB] } });
 
-        expect(screen.getAllByAltText('preview')).toHaveLength(2);
+        await waitFor(() => {
+            expect(screen.getAllByAltText('preview')).toHaveLength(2);
+        });
         fireEvent.click(screen.getAllByRole('button', { name: 'x' })[0]);
-        expect(screen.getAllByAltText('preview')).toHaveLength(1);
+        await waitFor(() => {
+            expect(screen.getAllByAltText('preview')).toHaveLength(1);
+        });
 
         fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 
         await waitFor(() => {
             expect(mockSaveCD).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    photos: ['blob:cover-b.png'],
-                    cover: ['blob:cover-b.png']
+                    photos: ['data:image/png;base64,cover-b.png'],
+                    cover: 'data:image/png;base64,cover-b.png'
                 }),
                 null
             );

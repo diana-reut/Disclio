@@ -79,7 +79,7 @@ export function MasterView({
                                 >
                                     <td>{index + 1}</td>
                                     <td>
-                                        <img className="cover-image-small" src={cd.cover} alt={cd.title} />
+                                        <img className="cover-image-small" src={cd.cover || cd.photos?.[0] || 'placeholder.jpg'} alt={cd.title} />
                                     </td>
                                     <td>{cd.title}</td>
                                     <td>{cd.artist}</td>

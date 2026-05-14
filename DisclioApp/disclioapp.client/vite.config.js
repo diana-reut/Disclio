@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
     const sslPfxPath = env.VITE_SSL_PFX_PATH;
     const sslPassphrase = env.VITE_SSL_PFX_PASSPHRASE;
     const devHost = env.VITE_DEV_HOST || '0.0.0.0';
+    const devOpen = env.VITE_DEV_OPEN_PATH || '/';
     const httpsConfig = sslPfxPath
         ? {
             pfx: fs.readFileSync(sslPfxPath),
@@ -52,7 +53,7 @@ export default defineConfig(({ mode }) => {
             } : undefined,
             port: 5173,
             strictPort: true,
-            open: 'https://192.168.101.99:5173'
+            open: devOpen
         },
         optimizeDeps: {
             include: ['recharts'],

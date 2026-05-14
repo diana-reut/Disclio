@@ -32,6 +32,7 @@ export function useCDPagination(pageSize = 5) {
                     id
                     title
                     artist
+                    cover
                     category
                     manufacturer
                     year

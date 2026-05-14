@@ -84,7 +84,7 @@ export function GridView({
                         >
                             <div className="album-card">
                                 <img
-                                    src={cd.cover}
+                                    src={cd.cover || cd.photos?.[0] || 'placeholder.jpg'}
                                     className="grid-cover"
                                     alt={cd.title}
                                 />

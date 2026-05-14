@@ -16,6 +16,7 @@ type CD {
     description: String
     songs: [Song]
     photos: [String]
+    cover: String
 }
 
 type Song {

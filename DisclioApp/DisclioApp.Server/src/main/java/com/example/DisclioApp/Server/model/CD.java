@@ -27,7 +27,8 @@ public class CD {
 
     @ElementCollection
     @CollectionTable(name = "cd_photos", joinColumns = @JoinColumn(name = "cd_id"))
-    @Column(name = "photo_url")
+    @Lob
+    @Column(name = "photo_url", columnDefinition = "TEXT")
     private List<String> photos;
 
 
@@ -44,8 +45,12 @@ public class CD {
             this.songs.clear();
             this.songs.addAll(newCD.songs);
         }
-        if (this.photos != null && newCD.photos != null) {
-            this.photos.clear();
+        if (newCD.photos != null) {
+            if (this.photos == null) {
+                this.photos = new java.util.ArrayList<>();
+            } else {
+                this.photos.clear();
+            }
             this.photos.addAll(newCD.photos);
         }
     }
@@ -123,6 +128,10 @@ public class CD {
 
     public void setPhotos(List<String> photos) {
         this.photos = photos;
+    }
+
+    public String getCover() {
+        return photos != null && !photos.isEmpty() ? photos.get(0) : null;
     }
 
     @Override
