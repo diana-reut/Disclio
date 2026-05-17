@@ -15,8 +15,6 @@ public class User {
     private String firstName;
     private String lastName;
     private String email;
-    @Column(unique = true)
-    private String webauthnUserHandle;
     @Column(length = 64)
     private String totpSecret;
     @Column(nullable = false, columnDefinition = "bit default 0")
@@ -58,14 +56,6 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getWebauthnUserHandle() {
-        return webauthnUserHandle;
-    }
-
-    public void setWebauthnUserHandle(String webauthnUserHandle) {
-        this.webauthnUserHandle = webauthnUserHandle;
     }
 
     public String getTotpSecret() {
