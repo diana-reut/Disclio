@@ -9,14 +9,16 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+    private final CorsProperties corsProperties;
+
+    public WebSocketConfig(CorsProperties corsProperties) {
+        this.corsProperties = corsProperties;
+    }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns(
-                        "https://*.*.*.*:5173",
-                        "http://*.*.*.*:5173"
-                );
+                .setAllowedOriginPatterns(corsProperties.getAllowedOrigins().toArray(String[]::new));
     }
 
     @Override

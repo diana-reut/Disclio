@@ -1,4 +1,6 @@
-const defaultApiBaseUrl = `${window.location.protocol}//${window.location.hostname}:8443`;
+const defaultApiBaseUrl = import.meta.env.DEV
+    ? `${window.location.protocol}//${window.location.hostname}:8443`
+    : '';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || defaultApiBaseUrl;
 export const GRAPHQL_ENDPOINT = `${API_BASE_URL}/graphql`;
