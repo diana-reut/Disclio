@@ -17,7 +17,7 @@ public class User {
     private String email;
     @Column(length = 64)
     private String totpSecret;
-    @Column(nullable = false, columnDefinition = "bit default 0")
+    @Column(nullable = false)
     private boolean totpEnabled = false;
 
     @ManyToOne(fetch = FetchType.EAGER)
