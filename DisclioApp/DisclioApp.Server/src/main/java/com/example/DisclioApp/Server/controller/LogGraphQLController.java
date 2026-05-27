@@ -1,37 +1,39 @@
 package com.example.DisclioApp.Server.controller;
 
 import com.example.DisclioApp.Server.model.Log;
+import com.example.DisclioApp.Server.service.AuthService;
 import com.example.DisclioApp.Server.service.LogService;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import java.util.List;
 
 @Controller
 public class LogGraphQLController {
     private final LogService logService;
+    private final AuthService authService;
 
-    public LogGraphQLController(LogService logService) {
+    public LogGraphQLController(LogService logService, AuthService authService) {
         this.logService = logService;
+        this.authService = authService;
     }
 
     @QueryMapping
-    @PreAuthorize("hasAuthority('VIEW_LOG')")
     public List<Log> getSystemLogs() {
+        authService.requirePermission("VIEW_LOG");
         return logService.getAllLogs();
     }
 
     @QueryMapping
-    @PreAuthorize("hasAuthority('VIEW_LOG')")
     public List<Log> pagedSystemLogs(@Argument int page, @Argument int size) {
+        authService.requirePermission("VIEW_LOG");
         return logService.getPagedLogs(page, size);
     }
 
     @QueryMapping
-    @PreAuthorize("hasAuthority('VIEW_LOG')")
     public int totalLogCount() {
+        authService.requirePermission("VIEW_LOG");
         return logService.count();
     }
 

@@ -357,6 +357,38 @@ public class AuthService {
         }
     }
 
+    public User requireAuthenticatedUser() {
+        String token = readAccessToken(currentRequest());
+        return resolveAuthenticatedUser(token, currentResponse())
+                .orElseThrow(() -> new BadCredentialsException("Authentication required."));
+    }
+
+    public void requirePermission(String permissionName) {
+        User user = requireAuthenticatedUser();
+        String token = readAccessToken(currentRequest());
+
+        if (token != null && !token.isBlank()) {
+            Claims claims = jwtService.parse(token);
+            Object permissionsClaim = claims.get("permissions");
+            if (permissionsClaim instanceof List<?> permissions) {
+                boolean allowed = permissions.stream()
+                        .filter(String.class::isInstance)
+                        .map(String.class::cast)
+                        .anyMatch(permissionName::equals);
+                if (allowed) {
+                    return;
+                }
+            }
+        }
+
+        if (user.getRole() != null && user.getRole().getPermissions().stream()
+                .anyMatch(permission -> permissionName.equals(permission.getName()))) {
+            return;
+        }
+
+        throw new BadCredentialsException("Access denied.");
+    }
+
     public void logout() {
         HttpServletRequest request = currentRequest();
         HttpServletResponse response = currentResponse();

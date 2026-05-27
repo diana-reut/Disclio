@@ -2,10 +2,10 @@ package com.example.DisclioApp.Server.controller;
 
 import com.example.DisclioApp.Server.model.CD;
 import com.example.DisclioApp.Server.model.Song;
+import com.example.DisclioApp.Server.service.AuthService;
 import com.example.DisclioApp.Server.service.CDService;
 import com.example.DisclioApp.Server.service.SongService;
 import org.springframework.graphql.data.method.annotation.*;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 
 import java.util.List;
@@ -17,10 +17,12 @@ public class CDGraphQLController {
 
     private final CDService cdService;
     private final SongService songService;
+    private final AuthService authService;
 
-    public CDGraphQLController(CDService cdService, SongService songService) {
+    public CDGraphQLController(CDService cdService, SongService songService, AuthService authService) {
         this.cdService = cdService;
         this.songService = songService;
+        this.authService = authService;
     }
 
     /**
@@ -34,47 +36,46 @@ public class CDGraphQLController {
 
 
     @QueryMapping
-    @PreAuthorize("hasAuthority('READ_CD')")
     public List<CD> cds() {
+        authService.requirePermission("READ_CD");
         return cdService.getAllCDs();
     }
 
     @QueryMapping
-    @PreAuthorize("hasAuthority('READ_CD')")
     public CD cd(@Argument int id) {
+        authService.requirePermission("READ_CD");
         return cdService.getCDByIndex(id);
     }
 
     @QueryMapping
-    @PreAuthorize("hasAuthority('READ_CD')")
     public List<CD> pagedCds(@Argument int page, @Argument int size) {
+        authService.requirePermission("READ_CD");
         return cdService.getPagedCDs(page, size);
     }
 
     @QueryMapping
-    @PreAuthorize("hasAuthority('READ_CD')")
     public int totalCount() {
+        authService.requirePermission("READ_CD");
         return cdService.count();
     }
 
     @QueryMapping
-    @PreAuthorize("hasAuthority('VIEW_STATISTICS')")
     public List<RatingStat> ratingStats() {
+        authService.requirePermission("VIEW_STATISTICS");
         return cdService.getRatingDistribution().entrySet().stream()
                 .map(e -> new RatingStat(e.getKey(), e.getValue()))
                 .collect(Collectors.toList());
     }
 
     @QueryMapping
-    @PreAuthorize("hasAuthority('VIEW_STATISTICS')")
     public List<SongFrequencyStat> songFrequencyStats() {
+        authService.requirePermission("VIEW_STATISTICS");
         return songService.getCdCountBySongFrequency().entrySet().stream()
                 .map(e -> new SongFrequencyStat(e.getKey(), e.getValue()))
                 .collect(Collectors.toList());
     }
 
     @MutationMapping
-    @PreAuthorize("hasAuthority('CREATE_CD')")
     public String addCD(
             @Argument String title, @Argument String artist,
             @Argument String category, @Argument String manufacturer,
@@ -83,6 +84,7 @@ public class CDGraphQLController {
             @Argument List<Map<String, Object>> songs,
             @Argument List<String> photos
     ) {
+        authService.requirePermission("CREATE_CD");
         CD cd = createCDFromArgs(title, artist, category, manufacturer, year, condition, rating, description, photos);
         cdService.addCD(cd);
 
@@ -92,7 +94,6 @@ public class CDGraphQLController {
     }
 
     @MutationMapping
-    @PreAuthorize("hasAuthority('UPDATE_CD')")
     public CD updateCD(
             @Argument int id,
             @Argument String title, @Argument String artist,
@@ -102,6 +103,7 @@ public class CDGraphQLController {
             @Argument List<Map<String, Object>> songs, // FIXED: Changed from List<Song> to List<Map>
             @Argument List<String> photos
     ) {
+        authService.requirePermission("UPDATE_CD");
         CD cdUpdate = createCDFromArgs(title, artist, category, manufacturer, year, condition, rating, description, photos);
         CD result = cdService.updateCD(id, cdUpdate);
 
@@ -115,14 +117,13 @@ public class CDGraphQLController {
     }
 
     @MutationMapping
-    @PreAuthorize("hasAuthority('DELETE_CD')")
     public String deleteCD(@Argument int id) {
+        authService.requirePermission("DELETE_CD");
         CD deleted = cdService.deleteCD(id);
         return deleted != null ? "Deleted" : "Not found";
     }
 
     @MutationMapping
-    @PreAuthorize("hasAuthority('CREATE_SONG')")
     public Song addSong(
             @Argument Integer id,
             @Argument int cdId,
@@ -130,6 +131,7 @@ public class CDGraphQLController {
             @Argument String duration,
             @Argument Integer trackNumber
     ) {
+        authService.requirePermission("CREATE_SONG");
         CD cd = cdService.getCDByIndex(cdId);
         if (cd == null) throw new RuntimeException("CD not found");
 
@@ -148,8 +150,8 @@ public class CDGraphQLController {
     }
 
     @MutationMapping
-    @PreAuthorize("hasAuthority('DELETE_SONG')")
     public boolean deleteSong(@Argument int id) {
+        authService.requirePermission("DELETE_SONG");
         return songService.deleteSong(id);
     }
 

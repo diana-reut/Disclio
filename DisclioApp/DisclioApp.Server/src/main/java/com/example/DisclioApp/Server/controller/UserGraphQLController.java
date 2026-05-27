@@ -16,8 +16,6 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 
 import java.util.List;
@@ -86,21 +84,18 @@ public class UserGraphQLController {
     }
 
     @QueryMapping
-    @PreAuthorize("isAuthenticated()")
-    public boolean totpEnabled(Authentication authentication) {
-        return resolveAuthenticatedUser(authentication).isTotpEnabled();
+    public boolean totpEnabled() {
+        return authService.requireAuthenticatedUser().isTotpEnabled();
     }
 
     @MutationMapping
-    @PreAuthorize("isAuthenticated()")
-    public TotpSetupResponse startTotpSetup(Authentication authentication) {
-        return authService.startTotpSetup(resolveAuthenticatedUser(authentication));
+    public TotpSetupResponse startTotpSetup() {
+        return authService.startTotpSetup(authService.requireAuthenticatedUser());
     }
 
     @MutationMapping
-    @PreAuthorize("isAuthenticated()")
-    public boolean finishTotpSetup(@Argument String code, Authentication authentication) {
-        return authService.finishTotpSetup(resolveAuthenticatedUser(authentication), code);
+    public boolean finishTotpSetup(@Argument String code) {
+        return authService.finishTotpSetup(authService.requireAuthenticatedUser(), code);
     }
 
     @MutationMapping
@@ -110,11 +105,13 @@ public class UserGraphQLController {
     }
 
     @QueryMapping
-    public User me(Authentication authentication) {
-        if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
+    public User me() {
+        try {
+            User user = authService.requireAuthenticatedUser();
+            return userRepository.findByUsername(user.getUsername()).orElse(null);
+        } catch (RuntimeException ex) {
             return null;
         }
-        return userRepository.findByUsername(user.getUsername()).orElse(null);
     }
 
     @QueryMapping
@@ -123,8 +120,8 @@ public class UserGraphQLController {
     }
 
     @QueryMapping
-    @PreAuthorize("isAuthenticated()")
     public List<ChatMessage> getChatHistory(@Argument String user1, @Argument String user2) {
+        authService.requireAuthenticatedUser();
         return mongoTemplate.find(
                 Query.query(new Criteria().orOperator(
                         Criteria.where("sender").is(user1).and("recipient").is(user2),
@@ -132,14 +129,5 @@ public class UserGraphQLController {
                 )).with(Sort.by(Sort.Direction.ASC, "timestamp")),
                 ChatMessage.class
         );
-    }
-
-    private User resolveAuthenticatedUser(Authentication authentication) {
-        if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
-            throw new IllegalStateException("No authenticated user available.");
-        }
-
-        return userRepository.findByUsername(user.getUsername())
-                .orElseThrow(() -> new IllegalStateException("Authenticated user no longer exists."));
     }
 }
