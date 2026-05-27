@@ -2,6 +2,8 @@ package com.example.DisclioApp.Server.config;
 
 import com.example.DisclioApp.Server.model.User;
 import com.example.DisclioApp.Server.service.AuthService;
+import com.example.DisclioApp.Server.service.JwtService;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -18,14 +20,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Component
 public class CookieAuthFilter extends OncePerRequestFilter {
 
     private final AuthService authService;
+    private final JwtService jwtService;
 
-    public CookieAuthFilter(AuthService authService) {
+    public CookieAuthFilter(AuthService authService, JwtService jwtService) {
         this.authService = authService;
+        this.jwtService = jwtService;
     }
 
     @Override
@@ -41,12 +46,29 @@ public class CookieAuthFilter extends OncePerRequestFilter {
 
             if (accessToken != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 Optional<User> userOptional = authService.resolveAuthenticatedUser(accessToken, response);
-                if (userOptional.isPresent() && userOptional.get().getRole() != null) {
+                if (userOptional.isPresent()) {
                     User user = userOptional.get();
                     List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-                    authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().getName()));
-                    user.getRole().getPermissions()
-                            .forEach(permission -> authorities.add(new SimpleGrantedAuthority(permission.getName())));
+                    Claims claims = jwtService.parse(accessToken);
+                    String roleName = claims.get("role", String.class);
+
+                    if (roleName != null && !roleName.isBlank()) {
+                        authorities.add(new SimpleGrantedAuthority("ROLE_" + roleName));
+                    } else if (user.getRole() != null) {
+                        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().getName()));
+                    }
+
+                    Object permissionsClaim = claims.get("permissions");
+                    if (permissionsClaim instanceof List<?> permissions) {
+                        permissions.stream()
+                                .filter(String.class::isInstance)
+                                .map(String.class::cast)
+                                .flatMap(permission -> permission == null ? Stream.empty() : Stream.of(permission))
+                                .forEach(permission -> authorities.add(new SimpleGrantedAuthority(permission)));
+                    } else if (user.getRole() != null) {
+                        user.getRole().getPermissions()
+                                .forEach(permission -> authorities.add(new SimpleGrantedAuthority(permission.getName())));
+                    }
 
                     UsernamePasswordAuthenticationToken badge = new UsernamePasswordAuthenticationToken(
                             user,

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { GRAPHQL_ENDPOINT } from "../api/client";
+import { getGraphQLErrorMessage, graphqlRequest } from "../api/client";
 
 const CDS_CACHE_KEY = "cached_cds";
 const CDS_TOTAL_KEY = "cached_cds_total";
@@ -51,24 +51,17 @@ export function useCDPagination(pageSize = 5) {
             }
         `;
 
-        const res = await fetch(GRAPHQL_ENDPOINT, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({
-                query,
-                variables: {
-                    page: page - 1,
-                    size: pageSize
-                }
-            })
+        const json = await graphqlRequest({
+            query,
+            variables: {
+                page: page - 1,
+                size: pageSize
+            }
         });
-
-        const json = await res.json();
 
         if (json.errors) {
             console.error("GraphQL Errors:", json.errors);
-            throw new Error("Failed to fetch CDs via GraphQL");
+            throw new Error(getGraphQLErrorMessage(json) || "Failed to fetch CDs via GraphQL");
         }
 
         return {

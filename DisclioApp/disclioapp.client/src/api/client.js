@@ -15,7 +15,18 @@ export async function graphqlRequest({ query, variables, signal }) {
         signal
     });
 
-    return response.json();
+    const text = await response.text();
+    const result = text ? JSON.parse(text) : {};
+
+    if (!response.ok) {
+        const message = getGraphQLErrorMessage(result) || `Request failed with status ${response.status}`;
+        const error = new Error(message);
+        error.status = response.status;
+        error.result = result;
+        throw error;
+    }
+
+    return result;
 }
 
 export function getGraphQLErrorMessage(result) {
