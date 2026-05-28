@@ -3,13 +3,33 @@ import { useNavigate, useParams } from 'react-router-dom';
 import './AddCDForm.css';
 import { GRAPHQL_ENDPOINT } from '../api/client';
 
-function readFileAsDataUrl(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(reader.error || new Error('Failed to read file.'));
-        reader.readAsDataURL(file);
-    });
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+async function uploadToCloudinary(file) {
+    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+        throw new Error('Cloudinary is not configured. Set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET.');
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+    const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+        {
+            method: 'POST',
+            body: formData
+        }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.secure_url) {
+        throw new Error(result?.error?.message || 'Failed to upload image to Cloudinary.');
+    }
+
+    return result.secure_url;
 }
 
 export function AddCDForm({ saveCD, getCachedCDById }) {
@@ -118,11 +138,11 @@ export function AddCDForm({ saveCD, getCachedCDById }) {
         }
 
         try {
-            const newPhotos = await Promise.all(files.map(readFileAsDataUrl));
+            const newPhotos = await Promise.all(files.map(uploadToCloudinary));
             setPhotos(currentPhotos => [...currentPhotos, ...newPhotos]);
         } catch (error) {
             console.error("Failed to process photo upload:", error);
-            alert("Failed to upload one or more photos.");
+            alert(error.message || "Failed to upload one or more photos.");
         } finally {
             e.target.value = '';
         }
