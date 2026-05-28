@@ -24,6 +24,9 @@ public class User {
     @JoinColumn(name = "role_id")
     private Role role;
 
+    @Transient
+    private String accessToken;
+
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
 
@@ -76,5 +79,13 @@ public class User {
 
     public Integer getId() {
         return id;
+    }
+
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
     }
 }

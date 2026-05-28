@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './AuthView.css';
-import { getGraphQLErrorMessage, graphqlRequest } from '../api/client';
+import { getGraphQLErrorMessage, graphqlRequest, setAuthToken } from '../api/client';
 
 const AUTH_VIEW_STORAGE_KEY = 'disclio_auth_view_state';
 const DEFAULT_FORM_DATA = {
@@ -205,6 +205,7 @@ export function AuthView({ onLogin }) {
                     login(username: $username, password: $password) {
                         username
                         firstName
+                        accessToken
                         role {
                             name
                         }
@@ -239,6 +240,7 @@ export function AuthView({ onLogin }) {
                 });
                 if (result.data && result.data.login) {
                     const userData = result.data.login;
+                    setAuthToken(userData.accessToken);
                     window.sessionStorage.removeItem(AUTH_VIEW_STORAGE_KEY);
                     setServerMessage('');
                     onLogin?.(userData);
@@ -319,6 +321,7 @@ export function AuthView({ onLogin }) {
                     finishSecureLogin(pendingLoginId: $pendingLoginId, totpCode: $totpCode) {
                         username
                         firstName
+                        accessToken
                         role {
                             name
                         }
@@ -337,6 +340,7 @@ export function AuthView({ onLogin }) {
 
                 if (finishResult.data?.finishSecureLogin) {
                     const userData = finishResult.data.finishSecureLogin;
+                    setAuthToken(userData.accessToken);
                     window.sessionStorage.removeItem(AUTH_VIEW_STORAGE_KEY);
                     setServerMessage('');
                     onLogin?.(userData);
@@ -394,6 +398,7 @@ export function AuthView({ onLogin }) {
                     loginWithEmailCode(identifier: $identifier, code: $code) {
                         username
                         firstName
+                        accessToken
                         role {
                             name
                         }
@@ -412,6 +417,7 @@ export function AuthView({ onLogin }) {
 
                 if (result.data?.loginWithEmailCode) {
                     const userData = result.data.loginWithEmailCode;
+                    setAuthToken(userData.accessToken);
                     window.sessionStorage.removeItem(AUTH_VIEW_STORAGE_KEY);
                     setServerMessage('');
                     onLogin?.(userData);

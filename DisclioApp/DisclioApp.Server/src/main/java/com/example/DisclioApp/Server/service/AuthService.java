@@ -491,10 +491,10 @@ public class AuthService {
         session.setRevoked(false);
         authSessionRepository.save(session);
 
-        writeAccessTokenCookie(response, user, session);
+        user.setAccessToken(writeAccessTokenCookie(response, user, session));
     }
 
-    private void writeAccessTokenCookie(HttpServletResponse response, User user, AuthSession session) {
+    private String writeAccessTokenCookie(HttpServletResponse response, User user, AuthSession session) {
         List<String> permissions = user.getRole().getPermissions().stream()
                 .map(Permission::getName)
                 .sorted()
@@ -510,6 +510,7 @@ public class AuthService {
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        return token;
     }
 
     private HttpServletRequest currentRequest() {
@@ -541,6 +542,14 @@ public class AuthService {
     }
 
     private String readAccessToken(HttpServletRequest request) {
+        String authorizationHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            String bearerToken = authorizationHeader.substring(7).trim();
+            if (!bearerToken.isBlank()) {
+                return bearerToken;
+            }
+        }
+
         if (request.getCookies() == null) {
             return null;
         }

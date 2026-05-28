@@ -14,7 +14,7 @@ import { LandingPage } from './presentation/LandingPage';
 import { AuthView } from './authentication/AuthView';
 import { useCDPagination } from './hooks/useCDPagination';
 import { addToQueue, getQueue, removeFromQueue } from './hooks/offlineSupport.js';
-import { getGraphQLErrorMessage, graphqlRequest, hasAuthError } from './api/client';
+import { clearAuthToken, getGraphQLErrorMessage, graphqlRequest, hasAuthError } from './api/client';
 
 const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
 
@@ -94,6 +94,7 @@ function App() {
             if (json.errors) {
                 console.error("Delete rejected:", json.errors);
                 if (hasAuthError(json)) {
+                    clearAuthToken();
                     setCurrentUser(null);
                 }
                 alert("Delete failed.");
@@ -141,6 +142,7 @@ function App() {
                     } else {
                         console.error("Server rejected queued item:", json.errors);
                         if (hasAuthError(json)) {
+                            clearAuthToken();
                             setCurrentUser(null);
                         }
                         break;
@@ -177,10 +179,17 @@ function App() {
                 });
 
                 if (!ignore) {
-                    setCurrentUser(normalizeUser(result.data?.me));
+                    const authenticatedUser = normalizeUser(result.data?.me);
+                    if (!authenticatedUser) {
+                        clearAuthToken();
+                    }
+                    setCurrentUser(authenticatedUser);
                 }
-            } catch {
+            } catch (error) {
                 if (!ignore) {
+                    if (error?.status === 401 || error?.status === 403) {
+                        clearAuthToken();
+                    }
                     setCurrentUser(null);
                 }
             } finally {
@@ -227,6 +236,7 @@ function App() {
                 });
             } catch {
             } finally {
+                clearAuthToken();
                 setCurrentUser(null);
             }
         };
@@ -316,6 +326,7 @@ function App() {
             if (json.errors) {
                 console.error("GraphQL Mutation Rejected:", json.errors);
                 if (hasAuthError(json)) {
+                    clearAuthToken();
                     setCurrentUser(null);
                 }
                 alert("GraphQL Error: " + getGraphQLErrorMessage(json));
@@ -353,6 +364,7 @@ function App() {
         try {
             const result = await graphqlRequest({ query, variables });
             if (hasAuthError(result)) {
+                clearAuthToken();
                 setCurrentUser(null);
                 return;
             }
@@ -367,6 +379,7 @@ function App() {
         try {
             const json = await graphqlRequest({ query });
             if (hasAuthError(json)) {
+                clearAuthToken();
                 setCurrentUser(null);
                 return {};
             }
@@ -382,6 +395,7 @@ function App() {
         try {
             const json = await graphqlRequest({ query });
             if (hasAuthError(json)) {
+                clearAuthToken();
                 setCurrentUser(null);
                 return {};
             }
