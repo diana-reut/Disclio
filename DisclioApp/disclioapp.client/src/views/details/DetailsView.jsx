@@ -51,7 +51,23 @@ export function DetailsView({ getCachedCDById }) {
                 setCd(json.data.cd);
                 const cached = JSON.parse(localStorage.getItem("cached_cds") || "[]");
                 const updated = cached.map(cd =>
-                    cd.id === json.data.cd.id ? json.data.cd : cd
+                    cd.id === json.data.cd.id
+                        ? {
+                            ...cd,
+                            id: json.data.cd.id,
+                            title: json.data.cd.title,
+                            artist: json.data.cd.artist,
+                            category: json.data.cd.category,
+                            manufacturer: json.data.cd.manufacturer,
+                            year: json.data.cd.year,
+                            condition: json.data.cd.condition,
+                            rating: json.data.cd.rating,
+                            description: json.data.cd.description,
+                            songs: json.data.cd.songs || [],
+                            cover: json.data.cd.photos?.[0] || cd.cover || null,
+                            photos: []
+                        }
+                        : cd
                 );
                 localStorage.setItem("cached_cds", JSON.stringify(updated));
                 setLoading(false);

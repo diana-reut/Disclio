@@ -4,6 +4,28 @@ import { getGraphQLErrorMessage, graphqlRequest } from "../api/client";
 const CDS_CACHE_KEY = "cached_cds";
 const CDS_TOTAL_KEY = "cached_cds_total";
 
+function sanitizeCdForCache(cd) {
+    return {
+        id: cd.id,
+        title: cd.title,
+        artist: cd.artist,
+        cover: cd.cover || null,
+        category: cd.category ?? "",
+        manufacturer: cd.manufacturer ?? "",
+        year: cd.year ?? null,
+        condition: cd.condition ?? "",
+        rating: cd.rating ?? null,
+        description: cd.description ?? "",
+        songs: Array.isArray(cd.songs) ? cd.songs.map(song => ({
+            id: song.id,
+            title: song.title,
+            duration: song.duration,
+            trackNumber: song.trackNumber
+        })) : [],
+        photos: []
+    };
+}
+
 export function useCDPagination(pageSize = 5) {
     const [cds, setCds] = useState(() => {
         const cached = localStorage.getItem(CDS_CACHE_KEY);
@@ -21,7 +43,8 @@ export function useCDPagination(pageSize = 5) {
     const prefetchCache = useRef(null);
 
     const saveCache = (items, total) => {
-        localStorage.setItem(CDS_CACHE_KEY, JSON.stringify(items));
+        const lightweightItems = items.map(sanitizeCdForCache);
+        localStorage.setItem(CDS_CACHE_KEY, JSON.stringify(lightweightItems));
         localStorage.setItem(CDS_TOTAL_KEY, String(total));
     };
 
@@ -39,13 +62,6 @@ export function useCDPagination(pageSize = 5) {
                     condition
                     rating
                     description
-                    photos
-                    songs {
-                        id
-                        title
-                        duration
-                        trackNumber
-                    }
                 }
                 totalCount
             }

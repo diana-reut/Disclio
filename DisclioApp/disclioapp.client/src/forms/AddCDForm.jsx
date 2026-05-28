@@ -57,7 +57,12 @@ export function AddCDForm({ saveCD, getCachedCDById }) {
 
                     const updated = cached.map(cd =>
                         cd.id === parseInt(id, 10)
-                            ? { ...cd, ...data }
+                            ? {
+                                ...cd,
+                                ...data,
+                                cover: data.photos?.[0] || cd.cover || null,
+                                photos: []
+                            }
                             : cd
                     );
 
