@@ -4,6 +4,7 @@ import com.example.DisclioApp.Server.model.CD;
 import com.example.DisclioApp.Server.repository.CDRepository;
 import com.example.DisclioApp.Server.repository.SongRepository;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,10 +26,12 @@ public class CDService {
         cdRepository.save(cd);
     }
 
+    @Transactional(readOnly = true)
     public List<CD> getAllCDs() {
         return cdRepository.findAll();
     }
 
+    @Transactional(readOnly = true)
     public CD getCDByIndex(int id) {
         return cdRepository.findById(id).orElse(null);
     }
@@ -60,9 +63,9 @@ public class CDService {
                 ));
     }
 
+    @Transactional(readOnly = true)
     public List<CD> getPagedCDs(int page, int size) {
-        // Use Spring Data's built-in pagination
-        return cdRepository.findAll(PageRequest.of(page, size)).getContent();
+        return cdRepository.findAll(PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"))).getContent();
     }
 
     public int count() {

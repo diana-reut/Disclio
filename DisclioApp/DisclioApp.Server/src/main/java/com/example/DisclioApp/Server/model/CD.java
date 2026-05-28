@@ -25,7 +25,7 @@ public class CD {
     @OneToMany(mappedBy = "cd", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Song> songs;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "cd_photos", joinColumns = @JoinColumn(name = "cd_id"))
     @Lob
     @Column(name = "photo_url", columnDefinition = "TEXT")

@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.Map;
@@ -108,7 +109,8 @@ class CDServiceTest {
     @Test
     void getPagedCdsUsesRequestedPageAndSize() {
         List<CD> cds = List.of(createCd("One", 1), createCd("Two", 2));
-        when(cdRepository.findAll(PageRequest.of(1, 2))).thenReturn(new PageImpl<>(cds));
+        when(cdRepository.findAll(PageRequest.of(1, 2, Sort.by(Sort.Direction.DESC, "id"))))
+                .thenReturn(new PageImpl<>(cds));
 
         List<CD> result = cdService.getPagedCDs(1, 2);
 

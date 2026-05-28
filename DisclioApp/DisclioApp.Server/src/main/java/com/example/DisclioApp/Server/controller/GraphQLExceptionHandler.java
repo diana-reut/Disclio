@@ -17,4 +17,11 @@ public class GraphQLExceptionHandler {
                         : ex.getMessage())
                 .build();
     }
+
+    @GraphQlExceptionHandler(Exception.class)
+    public GraphQLError handleUnexpectedExceptions(Exception ex) {
+        return GraphqlErrorBuilder.newError()
+                .message("An unexpected server error occurred.")
+                .build();
+    }
 }
