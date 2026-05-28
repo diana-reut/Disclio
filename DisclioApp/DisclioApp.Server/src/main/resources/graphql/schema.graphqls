@@ -120,6 +120,7 @@ type User {
     firstName: String
     lastName: String
     email: String
+    accessToken: String
     role: Role
 }
 
