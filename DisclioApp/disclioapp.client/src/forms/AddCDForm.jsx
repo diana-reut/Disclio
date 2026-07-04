@@ -26,7 +26,7 @@ async function uploadToCloudinary(file) {
     const result = await response.json();
 
     if (!response.ok || !result.secure_url) {
-        throw new Error(result?.error?.message || 'Failed to upload image to Cloudinary.');
+        throw new Error(result.error?.message || 'Failed to upload image to Cloudinary.');
     }
 
     return result.secure_url;
@@ -80,8 +80,7 @@ export function AddCDForm({ saveCD, getCachedCDById }) {
                             ? {
                                 ...cd,
                                 ...data,
-                                cover: data.photos?.[0] || cd.cover || null,
-                                photos: []
+                                cover: data.photos?.[0] || cd.cover || null
                             }
                             : cd
                     );
